@@ -3,11 +3,12 @@ from sklearn import *
 from sklearn import svm
 from sklearn import neighbors
 from sklearn.naive_bayes import GaussianNB
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier,  AdaBoostClassifier
 from sklearn.metrics import roc_curve, auc
 from scipy.integrate import trapz
 import time
 
+#Make a roc curve to evaluate a classification routine
 def roc(pr, Yt):
     probs=pr.copy()
     Y_test=Yt.copy()
@@ -38,19 +39,21 @@ def roc(pr, Yt):
     
     auc=trapz(tpr, fpr)
     return fpr, tpr, auc
+    
+    
 
-
+#SVM using the SVC routine with (currently) linear kernel (it's really slow)
+#returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
 def support_vm(X_train, Y_train, X_test, Y_test):
     a=time.time()
     svr=svm.SVC(kernel='linear', probability=True)
     #svr=svm.SVC()
-    
     #Can do a grid search of gamma as well as C
     #C_range = 10.0 ** arange(-2, 9)
     #gamma_range = 10.0 ** arange(-5, 4)
     #parameters = {'C':C_range,  'gamma':gamma_range}
-#    parameters={'C':arange(1, 10)}
-#    clf=grid_search.GridSearchCV(svr, parameters) #At least at the moment, this doesn't make much difference
+    #parameters={'C':arange(1, 10)}
+    #clf=grid_search.GridSearchCV(svr, parameters) #At least at the moment, this doesn't make much difference
     clf=svr
     print 'fitting now'
     f=clf.fit(X_train, Y_train)
@@ -59,13 +62,12 @@ def support_vm(X_train, Y_train, X_test, Y_test):
     #fpr, tpr,thresh = roc_curve(Y_test, probs[:, 1], pos_label=1)
     #print thresh
     #roc_auc = auc(fpr, tpr)
-    
-#    w = clf.coef_[0]
-#    a = -w[0] / w[1]
-#    xx = linspace(min(min(X_train[:, 0]), min(X_test[:, 0])),max(max(X_train[:, 0]), max(X_test[:, 0])))
-#    yy = a * xx - (clf.intercept_[0]) / w[1]
-#    plot(xx, yy, 'k')
-#    show()
+    #w = clf.coef_[0]
+    #a = -w[0] / w[1]
+    #xx = linspace(min(min(X_train[:, 0]), min(X_test[:, 0])),max(max(X_train[:, 0]), max(X_test[:, 0])))
+    #yy = a * xx - (clf.intercept_[0]) / w[1]
+    #plot(xx, yy, 'k')
+    #show()
     
     print
     print 'Support vector machine'
@@ -73,19 +75,120 @@ def support_vm(X_train, Y_train, X_test, Y_test):
     print 'Accuracy', sum(preds==Y_test)/(float)(len(preds))
     mismatched=preds[preds!=Y_test]
     
+    print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
+    
+    fpr2, tpr2, auc2 = roc(probs[:, 0], Y_test)
+    return fpr2, tpr2, auc2
+    
+#    plot(fpr, tpr, 'b')
+#    plot(fpr2, tpr2, 'g')
+#    print 'Scikit AUC', roc_auc
+#    print 'My AUC', auc2
+#    show()
+#    return fpr, tpr, roc_auc
+
+
+
+#Can't use LinearSVC atm because it doesn't give probabilities. Stackoverflow seems to
+#suggest that it would not be trivial to add my own probabilities function.
+"""
+#SVM using the LinearSVC routine 
+#returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
+def support_vm(X_train, Y_train, X_test, Y_test):
+    a=time.time()
+    svr=svm.LinearSVC()
+    #svr=svm.SVC()
+    #Can do a grid search of gamma as well as C
+    #C_range = 10.0 ** arange(-2, 9)
+    #gamma_range = 10.0 ** arange(-5, 4)
+    #parameters = {'C':C_range,  'gamma':gamma_range}
+    #parameters={'C':arange(1, 10)}
+    #clf=grid_search.GridSearchCV(svr, parameters) #At least at the moment, this doesn't make much difference
+    clf=svr
+    print 'fitting now'
+    f=clf.fit(X_train, Y_train)
+    preds=clf.predict(X_test)
+    probs= clf.predict_proba(X_test)
+    #fpr, tpr,thresh = roc_curve(Y_test, probs[:, 1], pos_label=1)
+    #print thresh
+    #roc_auc = auc(fpr, tpr)
+    #w = clf.coef_[0]
+    #a = -w[0] / w[1]
+    #xx = linspace(min(min(X_train[:, 0]), min(X_test[:, 0])),max(max(X_train[:, 0]), max(X_test[:, 0])))
+    #yy = a * xx - (clf.intercept_[0]) / w[1]
+    #plot(xx, yy, 'k')
+    #show()
+    
+    print
+    print 'Support vector machine'
+    print 'Time taken', time.time()-a, 's'
+    print 'Accuracy', sum(preds==Y_test)/(float)(len(preds))
+    mismatched=preds[preds!=Y_test]
     
     print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
     
     fpr2, tpr2, auc2 = roc(probs[:, 0], Y_test)
     return fpr2, tpr2, auc2
+    
 #    plot(fpr, tpr, 'b')
 #    plot(fpr2, tpr2, 'g')
-#    
 #    print 'Scikit AUC', roc_auc
 #    print 'My AUC', auc2
 #    show()
+#    return fpr, tpr, roc_auc
+"""
+
+
+#SVM using the SVC routine with cubic kernel
+#returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
+def support_vm3(X_train, Y_train, X_test, Y_test):
+    a=time.time()
+    svr=svm.SVC(kernel='poly', degree = 3, probability=True)
+    #svr=svm.SVC()
+    #Can do a grid search of gamma as well as C
+    #C_range = 10.0 ** arange(-2, 9)
+    #gamma_range = 10.0 ** arange(-5, 4)
+    #parameters = {'C':C_range,  'gamma':gamma_range}
+    #parameters={'C':arange(1, 10)}
+    #clf=grid_search.GridSearchCV(svr, parameters) #At least at the moment, this doesn't make much difference
+    clf=svr
+    print 'fitting now'
+    f=clf.fit(X_train, Y_train)
+    preds=clf.predict(X_test)
+    probs= clf.predict_proba(X_test)
+    #fpr, tpr,thresh = roc_curve(Y_test, probs[:, 1], pos_label=1)
+    #print thresh
+    #roc_auc = auc(fpr, tpr)
+    #w = clf.coef_[0]
+    #a = -w[0] / w[1]
+    #xx = linspace(min(min(X_train[:, 0]), min(X_test[:, 0])),max(max(X_train[:, 0]), max(X_test[:, 0])))
+    #yy = a * xx - (clf.intercept_[0]) / w[1]
+    #plot(xx, yy, 'k')
+    #show()
     
-    #return fpr, tpr, roc_auc
+    print
+    print 'Support vector machine'
+    print 'Time taken', time.time()-a, 's'
+    print 'Accuracy', sum(preds==Y_test)/(float)(len(preds))
+    mismatched=preds[preds!=Y_test]
+    
+    print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
+    
+    fpr2, tpr2, auc2 = roc(probs[:, 0], Y_test)
+    return fpr2, tpr2, auc2
+    
+#    plot(fpr, tpr, 'b')
+#    plot(fpr2, tpr2, 'g')
+#    print 'Scikit AUC', roc_auc
+#    print 'My AUC', auc2
+#    show()
+#    return fpr, tpr, roc_auc
+
+    
+    
+    
+#A bagged RF where GridSearchCV finds the optimum number of trees between 1 and 11
+#returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
 def forest(X_train, Y_train, X_test, Y_test):
     a=time.time()
 
@@ -107,6 +210,38 @@ def forest(X_train, Y_train, X_test, Y_test):
     fpr, tpr, auc=roc(probs, Y_test)
     return fpr, tpr, auc
     
+
+
+
+#A boosted RF
+#returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
+def boost_RF(X_train, Y_train, X_test, Y_test):
+    a=time.time()
+
+    classifier = AdaBoostClassifier()
+    #parameters={'n_estimators':arange(1, 12)}
+    #clf=grid_search.GridSearchCV(clss, parameters) 
+    
+    classifier.fit(X_train, Y_train)
+    preds=classifier.predict(X_test)
+    
+    print
+    print 'Random forest'
+    print 'Time taken', time.time()-a, 's'
+    print 'Accuracy', sum(preds==Y_test)/(float)(len(preds))
+    mismatched=preds[preds!=Y_test]
+    print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
+    
+    probs=classifier.predict_proba(X_test)[:, 0]
+    fpr, tpr, auc=roc(probs, Y_test)
+    return fpr, tpr, auc
+
+
+
+    
+
+#KNN classifier with weights going as 1/r
+#returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
 def nearest_neighbours(X_train, Y_train, X_test, Y_test):
     a=time.time()
     n_neighbors=5
@@ -124,9 +259,40 @@ def nearest_neighbours(X_train, Y_train, X_test, Y_test):
     probs=clf.predict_proba(X_test)[:, 0]
     fpr, tpr, auc=roc(probs, Y_test)
     return fpr, tpr, auc
+
+
+
+
+#RNN classifier with weights going as 1/r
+#returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
+def radius_neighbours(X_train, Y_train, X_test, Y_test):
+    
+    try:
+        a=time.time()
+        radius=0.2      #Come back to this - need a rigorous approach
+        clf=neighbors.RadiusNeighborsClassifier(radius, weights='distance')
+        clf.fit(X_train, Y_train)
+        preds=clf.predict(X_test)
+        
+        print
+        print 'Radius nearest neighbours'
+        print 'Time taken', time.time()-a, 's'
+        print 'Accuracy', sum(preds==Y_test)/(float)(len(preds))
+        mismatched=preds[preds!=Y_test]
+        print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
+        
+        probs=clf.predict_proba(X_test)[:, 0]
+        fpr, tpr, auc=roc(probs, Y_test)
+    except ValueError:
+        print 'ValueError in RNN - probably due to no neighbours within radius'
+        fpr,  tpr,  auc = (None, None, None)
+        
+    return fpr, tpr, auc
     
 
-    
+
+#Naive Bayes classifier 
+#returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
 def bayes(X_train, Y_train, X_test, Y_test):
     a=time.time()
     clf = GaussianNB()
@@ -143,6 +309,10 @@ def bayes(X_train, Y_train, X_test, Y_test):
     probs=clf.predict_proba(X_test)[:, 0]
     fpr, tpr, auc=roc(probs, Y_test)
     return fpr, tpr, auc
+    
+    
+    
+    
     
 #    y_score=f.decision_function(X_test)[:, 0]
 #    fpr, tpr, _ = roc_curve(Y_test, y_score, pos_label=1)
