@@ -1,6 +1,6 @@
 from pylab import *
 from sklearn import *
-import ml_algorithms, features, pywt, os, math, time
+import ml_algorithms, pywt, os, math, time
 from sklearn.decomposition import PCA, KernelPCA,  SparsePCA,  FastICA
 from sklearn.lda import LDA
 from gapp import dgp
