@@ -230,6 +230,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     f4, t4, a4=ml_algorithms.forest(X_train, Y_train, X_test, Y_test)
     f5, t5, a5=ml_algorithms.radius_neighbours(X_train, Y_train, X_test, Y_test)
     f6, t6, a6 = ml_algorithms.boost_RF(X_train, Y_train, X_test, Y_test)
+    f8, t8, a8 = ml_algorithms.forest()
     if SVM:
         f1, t1, a1=ml_algorithms.support_vm(X_train, Y_train, X_test, Y_test)
         f7, t7, a7=ml_algorithms.support_vm3(X_train, Y_train, X_test, Y_test)
@@ -243,7 +244,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     print 'Bayes', a2
     print 'KNN', a3
     print 'Random forest', a4
-    print 'RNN',  a5
+   # print 'RNN',  a5
     print 'AdaBoost forest',  a6
     
 
@@ -266,7 +267,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     plot(f2, t2, C2, lw=linew)
     plot(f3, t3, C3, lw=linew)
     plot(f4, t4, C4, lw=linew)
-    plot(f5, t5, C5, lw=linew)
+    #plot(f5, t5, C5, lw=linew)
     plot(f6, t6, C6, lw=linew)
     
     #Set plot parameters
@@ -274,9 +275,14 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     ax.set_aspect(1.0)
     setup_plot(ax)
     if SVM:
-        legend(('SVM (%.3f)' %(a1), 'Cubic SVM (%.3f)' %(a7),  'Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4), 'RNN (%.3f)' %(a5),  'Ada Forest (%.3f)' %(a6)),  loc='lower right',  frameon=True, bbox_to_anchor=(0.95, 0.05), fontsize=18)
+        legend(('SVM (%.3f)' %(a1), 'Cubic SVM (%.3f)' %(a7),  'Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4), 
+        'Ada Forest (%.3f)' %(a6)),  loc='lower right',  frameon=True, bbox_to_anchor=(0.95, 0.05), fontsize=18)
     else:
-        legend(('Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4),  'RRN (%.3f)' %(a5),  'Ada Forest (%.3f)' %(a6)), loc='lower right',  frameon=True, bbox_to_anchor=(0.95, 0.05), fontsize=18)
+        legend(('Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4), \
+        'Ada Forest (%.3f)' %(a6)), loc='lower right',  frameon=True, bbox_to_anchor=(0.95, 0.05), fontsize=18)
+        
+    #legend(('Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4),  'RRN (%.3f)' %(a5), 
+    #'Ada Forest (%.3f)' %(a6)), loc='lower right',  frameon=True, bbox_to_anchor=(0.95, 0.05), fontsize=18)
     #legend(('Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4)), loc='lower right')
     title('ROC Curve', fontsize=22)
     xlabel('False positive rate (contamination)', fontsize=18)

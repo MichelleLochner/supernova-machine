@@ -26,4 +26,4 @@ Y_train=Y[:int(round(n/2.0))]
 X_test=X_scaled[int(round(n/2.0)):, :]
 Y_test=Y[int(round(n/2.0)):]
 
-tools.run_ml(X_train, Y_train, X_test, Y_test, run_svm=True)
+tools.run_ml(X_train, Y_train, X_test, Y_test, run_svm=False)

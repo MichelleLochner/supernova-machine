@@ -16,7 +16,7 @@ def roc(pr, Yt):
         probs_1=probs[:, 0]
     else:
         probs_1=probs
-    threshold=linspace(0., 1., 50)
+    threshold=linspace(0., 1., 50) #50 evenly spaced numbers between 0,1
     tpr=[0]*len(threshold)
     fpr=[0]*len(threshold)
     Y_test[Y_test==2]=0
@@ -193,7 +193,8 @@ def forest(X_train, Y_train, X_test, Y_test):
     a=time.time()
 
     clss= RandomForestClassifier()
-    parameters={'n_estimators':arange(1, 12)}
+    parameters=[{'n_estimators':arange(1, 100),  'max_features':arange(3, 6),  'criterion':['gini']}, 
+                        {'n_estimators':arange(1,100), 'max_features':arange(3, 6),  'criterion':['entropy']}]
     clf=grid_search.GridSearchCV(clss, parameters) 
     
     clf.fit(X_train, Y_train)
@@ -205,7 +206,6 @@ def forest(X_train, Y_train, X_test, Y_test):
     print 'Accuracy', sum(preds==Y_test)/(float)(len(preds))
     mismatched=preds[preds!=Y_test]
     print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
-    
     probs=clf.predict_proba(X_test)[:, 0]
     fpr, tpr, auc=roc(probs, Y_test)
     return fpr, tpr, auc
