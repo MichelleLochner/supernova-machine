@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestClassifier,  AdaBoostClassifier
 from sklearn.metrics import roc_curve, auc
 from scipy.integrate import trapz
 import time
+from numpy import unique
 
 #Make a roc curve to evaluate a classification routine
 def roc(pr, Yt):
@@ -77,9 +78,9 @@ def support_vm(X_train, Y_train, X_test, Y_test):
     
     print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
     
-    fpr2, tpr2, auc2 = roc(probs[:, 0], Y_test)
-    return fpr2, tpr2, auc2
-    
+    #fpr2, tpr2, auc2 = roc(probs[:, 0], Y_test)
+    #return fpr2, tpr2, auc2
+    return probs[:, 0], Y_test
 #    plot(fpr, tpr, 'b')
 #    plot(fpr2, tpr2, 'g')
 #    print 'Scikit AUC', roc_auc
@@ -174,9 +175,9 @@ def support_vm3(X_train, Y_train, X_test, Y_test):
     
     print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
     
-    fpr2, tpr2, auc2 = roc(probs[:, 0], Y_test)
-    return fpr2, tpr2, auc2
-    
+    #fpr2, tpr2, auc2 = roc(probs[:, 0], Y_test)
+    #return fpr2, tpr2, auc2
+    return probs[:, 0], Y_test
 #    plot(fpr, tpr, 'b')
 #    plot(fpr2, tpr2, 'g')
 #    print 'Scikit AUC', roc_auc
@@ -192,12 +193,14 @@ def support_vm3(X_train, Y_train, X_test, Y_test):
 def forest(X_train, Y_train, X_test, Y_test):
     a=time.time()
 
-    clss= RandomForestClassifier()
-    parameters=[{'n_estimators':arange(1, 100),  'max_features':arange(3, 6),  'criterion':['gini']}, 
-                        {'n_estimators':arange(1,100), 'max_features':arange(3, 6),  'criterion':['entropy']}]
-    clf=grid_search.GridSearchCV(clss, parameters) 
+    #clss= RandomForestClassifier()
+    #parameters=[{'n_estimators':arange(1, 20),  'max_features':arange(3, 6),  'criterion':['gini']}, 
+    #                    {'n_estimators':arange(1,20), 'max_features':arange(3, 6),  'criterion':['entropy']}]
+    #clf=grid_search.GridSearchCV(clss, parameters) 
+    clf = RandomForestClassifier(1000, 'entropy')
     
     clf.fit(X_train, Y_train)
+    #print(clf.get_params())
     preds=clf.predict(X_test)
     
     print
@@ -207,9 +210,9 @@ def forest(X_train, Y_train, X_test, Y_test):
     mismatched=preds[preds!=Y_test]
     print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
     probs=clf.predict_proba(X_test)[:, 0]
-    fpr, tpr, auc=roc(probs, Y_test)
-    return fpr, tpr, auc
-    
+    #fpr, tpr, auc=roc(probs, Y_test)
+    #return fpr, tpr, auc
+    return probs, Y_test
 
 
 
@@ -226,16 +229,16 @@ def boost_RF(X_train, Y_train, X_test, Y_test):
     preds=classifier.predict(X_test)
     
     print
-    print 'Random forest'
+    print 'AdaBoost forest'
     print 'Time taken', time.time()-a, 's'
     print 'Accuracy', sum(preds==Y_test)/(float)(len(preds))
     mismatched=preds[preds!=Y_test]
     print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
     
     probs=classifier.predict_proba(X_test)[:, 0]
-    fpr, tpr, auc=roc(probs, Y_test)
-    return fpr, tpr, auc
-
+    #fpr, tpr, auc=roc(probs, Y_test)
+    #return fpr, tpr, auc
+    return probs, Y_test
 
 
     
@@ -244,7 +247,8 @@ def boost_RF(X_train, Y_train, X_test, Y_test):
 #returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
 def nearest_neighbours(X_train, Y_train, X_test, Y_test):
     a=time.time()
-    n_neighbors=5
+    print 'Size of training set is',  len(X_train[:, 0])
+    n_neighbors=20
     clf=neighbors.KNeighborsClassifier(n_neighbors, weights='distance')
     clf.fit(X_train, Y_train)
     preds=clf.predict(X_test)
@@ -257,9 +261,9 @@ def nearest_neighbours(X_train, Y_train, X_test, Y_test):
     print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
     
     probs=clf.predict_proba(X_test)[:, 0]
-    fpr, tpr, auc=roc(probs, Y_test)
-    return fpr, tpr, auc
-
+    #fpr, tpr, auc=roc(probs, Y_test)
+    #return fpr, tpr, auc
+    return probs,  Y_test
 
 
 
@@ -282,13 +286,13 @@ def radius_neighbours(X_train, Y_train, X_test, Y_test):
         print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
         
         probs=clf.predict_proba(X_test)[:, 0]
-        fpr, tpr, auc=roc(probs, Y_test)
+        #fpr, tpr, auc=roc(probs, Y_test)
     except ValueError:
         print 'ValueError in RNN - probably due to no neighbours within radius'
-        fpr,  tpr,  auc = (None, None, None)
+        fpr,  tpr,  auc ,  probs,  Y_test= (None, None, None,  -9999,  None)
         
-    return fpr, tpr, auc
-    
+    #return fpr, tpr, auc
+    return probs,  Y_test
 
 
 #Naive Bayes classifier 
@@ -307,9 +311,10 @@ def bayes(X_train, Y_train, X_test, Y_test):
     print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
     
     probs=clf.predict_proba(X_test)[:, 0]
-    fpr, tpr, auc=roc(probs, Y_test)
-    return fpr, tpr, auc
     
+    #fpr, tpr, auc=roc(probs, Y_test)
+    #return fpr, tpr, auc
+    return probs,  Y_test
     
     
     

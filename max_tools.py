@@ -225,27 +225,63 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     if 'run_svm' in kwargs and kwargs['run_svm']==True:
        SVM=True 
     
-    f2, t2, a2=ml_algorithms.bayes(X_train, Y_train, X_test, Y_test)
-    f3, t3, a3=ml_algorithms.nearest_neighbours(X_train, Y_train, X_test, Y_test)
-    f4, t4, a4=ml_algorithms.forest(X_train, Y_train, X_test, Y_test)
-    f5, t5, a5=ml_algorithms.radius_neighbours(X_train, Y_train, X_test, Y_test)
-    f6, t6, a6 = ml_algorithms.boost_RF(X_train, Y_train, X_test, Y_test)
-    f8, t8, a8 = ml_algorithms.forest()
+    #Run classifiers with 2-fold cross validation
+    probs2, Y_test2=ml_algorithms.bayes(X_train,  Y_train,  X_test,  Y_test)
+    probs2_repeat, Y_test2_repeat=ml_algorithms.bayes(X_test, Y_test, X_train, Y_train)
+    probs3, Y_test3=ml_algorithms.nearest_neighbours(X_train, Y_train, X_test, Y_test)
+    probs3_repeat, Y_test3_repeat=ml_algorithms.nearest_neighbours(X_test, Y_test, X_train, Y_train)
+    probs4, Y_test4=ml_algorithms.forest(X_train, Y_train, X_test, Y_test)
+    probs4_repeat, Y_test4_repeat=ml_algorithms.forest(X_test, Y_test, X_train, Y_train)
+    probs5, Y_test5=ml_algorithms.radius_neighbours(X_train, Y_train, X_test, Y_test)
+    probs5_repeat, Y_test5_repeat=ml_algorithms.radius_neighbours(X_test, Y_test, X_train, Y_train)
+    probs6, Y_test6=ml_algorithms.boost_RF(X_train, Y_train, X_test, Y_test)
+    probs6_repeat, Y_test6_repeat=ml_algorithms.boost_RF(X_test, Y_test, X_train, Y_train)
+
     if SVM:
-        f1, t1, a1=ml_algorithms.support_vm(X_train, Y_train, X_test, Y_test)
-        f7, t7, a7=ml_algorithms.support_vm3(X_train, Y_train, X_test, Y_test)
+        probs1, Y_test1=ml_algorithms.support_vm(X_train, Y_train, X_test, Y_test)
+        probs1_repeat, Y_test1_repeat=ml_algorithms.support_vm(X_test, Y_test, X_train, Y_train)
+        probs7, Y_test7=ml_algorithms.supportvm3(X_train, Y_train, X_test, Y_test)
+        probs7_repeat, Y_test7_repeat=ml_algorithms.supportvm3(X_test, Y_test, X_train, Y_train)
+        
+        f1, t1, a1=ml_algorithms.roc(probs1, Y_test1)
+        f1_repeat, t1_repeat, a1_repeat=ml_algorithms.roc(probs1_repeat, Y_test1_repeat)
+        f7, t7, a7=ml_algorithms.roc(probs7, Y_test7)
+        f7_repeat, t7_repeat, a7_repeat=ml_algorithms.roc(probs7_repeat, Y_test7_repeat)
+        
+        a1_mean = (a1+a1_repeat)/2.0
+        a7_mean = (a7+a7_repeat)/2.0
     #plot_probs(X_test, Y_test, probs)
 
+    #calculate ROC curve values
+    f2, t2, a2=ml_algorithms.roc(probs2, Y_test2)
+    f2_repeat, t2_repeat, a2_repeat=ml_algorithms.roc(probs2_repeat, Y_test2_repeat)
+    f3, t3, a3=ml_algorithms.roc(probs3, Y_test3)
+    f3_repeat, t3_repeat, a3_repeat=ml_algorithms.roc(probs3_repeat, Y_test3_repeat)
+    f4, t4, a4=ml_algorithms.roc(probs4, Y_test4)
+    f4_repeat, t4_repeat, a4_repeat=ml_algorithms.roc(probs4_repeat, Y_test4_repeat)
+    if probs5 != -9999:
+        f5, t5, a5=ml_algorithms.roc(probs5, Y_test5)
+        f5_repeat, t5_repeat, a5_repeat=ml_algorithms.roc(probs5_repeat, Y_test5_repeat)
+    f6, t6, a6=ml_algorithms.roc(probs6, Y_test6)
+    f6_repeat, t6_repeat, a6_repeat = ml_algorithms.roc(probs6_repeat, Y_test6_repeat)
+
+    #calculate mean AUC over cross validation
+    a2_mean = (a2+a2_repeat)/2.0
+    a3_mean = (a3+a3_repeat)/2.0
+    a4_mean = (a4+a4_repeat)/2.0
+    #a5_mean = (a5+a5_repeat)/2.0
+    a6_mean = (a6+a6_repeat)/2.0
+    
     print
     print 'AUC:'
     if SVM:
-        print 'SVM',a1
-        print 'Cubic SVM', a7
-    print 'Bayes', a2
-    print 'KNN', a3
-    print 'Random forest', a4
+        print 'SVM',a1_mean
+        print 'Cubic SVM', a7_mean
+    print 'Bayes', a2_mean
+    print 'KNN', a3_mean
+    print 'Random forest', a4_mean
    # print 'RNN',  a5
-    print 'AdaBoost forest',  a6
+    print 'AdaBoost forest',  a6_mean
     
 
     figure(figsize=(10, 10))
@@ -260,6 +296,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     
     linew=2.5
 
+    
     #plot ROC curves
     if SVM:
         plot(f1, t1, C1, lw=linew)
