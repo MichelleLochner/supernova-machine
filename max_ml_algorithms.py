@@ -17,7 +17,7 @@ def roc(pr, Yt):
         probs_1=probs[:, 0]
     else:
         probs_1=probs
-    threshold=linspace(0., 1., 50) #50 evenly spaced numbers between 0,1
+    threshold=linspace(0., 1., 500) #500 evenly spaced numbers between 0,1
     tpr=[0]*len(threshold)
     fpr=[0]*len(threshold)
     Y_test[Y_test==2]=0
@@ -26,7 +26,7 @@ def roc(pr, Yt):
         preds=zeros(len(Y_test))
         preds[probs_1>=threshold[i]]=1
         TP=sum((preds==1) & (Y_test==1))
-        FP=sum((preds==1) &(Y_test==0))
+        FP=sum((preds==1) & (Y_test==0))
         TN=sum((preds==0) & (Y_test==0))
         FN=sum((preds==0) & (Y_test==1))
         if TP==0:

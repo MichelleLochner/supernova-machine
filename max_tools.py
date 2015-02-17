@@ -240,8 +240,8 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     if SVM:
         probs1, Y_test1=ml_algorithms.support_vm(X_train, Y_train, X_test, Y_test)
         probs1_repeat, Y_test1_repeat=ml_algorithms.support_vm(X_test, Y_test, X_train, Y_train)
-        probs7, Y_test7=ml_algorithms.supportvm3(X_train, Y_train, X_test, Y_test)
-        probs7_repeat, Y_test7_repeat=ml_algorithms.supportvm3(X_test, Y_test, X_train, Y_train)
+        probs7, Y_test7=ml_algorithms.support_vm3(X_train, Y_train, X_test, Y_test)
+        probs7_repeat, Y_test7_repeat=ml_algorithms.support_vm3(X_test, Y_test, X_train, Y_train)
         
         f1, t1, a1=ml_algorithms.roc(probs1, Y_test1)
         f1_repeat, t1_repeat, a1_repeat=ml_algorithms.roc(probs1_repeat, Y_test1_repeat)
