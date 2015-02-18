@@ -44,129 +44,40 @@ def roc(pr, Yt):
     
 
 #SVM using the SVC routine with (currently) linear kernel (it's really slow)
-#returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
 def support_vm(X_train, Y_train, X_test, Y_test):
+    
     a=time.time()
+    
     svr=svm.SVC(kernel='linear', probability=True)
-    #svr=svm.SVC()
-    #Can do a grid search of gamma as well as C
-    #C_range = 10.0 ** arange(-2, 9)
-    #gamma_range = 10.0 ** arange(-5, 4)
-    #parameters = {'C':C_range,  'gamma':gamma_range}
-    #parameters={'C':arange(1, 10)}
-    #clf=grid_search.GridSearchCV(svr, parameters) #At least at the moment, this doesn't make much difference
     clf=svr
+    
     print 'fitting now'
+    
     f=clf.fit(X_train, Y_train)
     preds=clf.predict(X_test)
     probs= clf.predict_proba(X_test)
-    #fpr, tpr,thresh = roc_curve(Y_test, probs[:, 1], pos_label=1)
-    #print thresh
-    #roc_auc = auc(fpr, tpr)
-    #w = clf.coef_[0]
-    #a = -w[0] / w[1]
-    #xx = linspace(min(min(X_train[:, 0]), min(X_test[:, 0])),max(max(X_train[:, 0]), max(X_test[:, 0])))
-    #yy = a * xx - (clf.intercept_[0]) / w[1]
-    #plot(xx, yy, 'k')
-    #show()
-    
+
     print
     print 'Support vector machine'
     print 'Time taken', time.time()-a, 's'
     print 'Accuracy', sum(preds==Y_test)/(float)(len(preds))
+
     mismatched=preds[preds!=Y_test]
     
     print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
     
-    #fpr2, tpr2, auc2 = roc(probs[:, 0], Y_test)
-    #return fpr2, tpr2, auc2
     return probs[:, 0], Y_test
-#    plot(fpr, tpr, 'b')
-#    plot(fpr2, tpr2, 'g')
-#    print 'Scikit AUC', roc_auc
-#    print 'My AUC', auc2
-#    show()
-#    return fpr, tpr, roc_auc
-
-
-
-#Can't use LinearSVC atm because it doesn't give probabilities. Stackoverflow seems to
-#suggest that it would not be trivial to add my own probabilities function.
-"""
-#SVM using the LinearSVC routine 
-#returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
-def support_vm(X_train, Y_train, X_test, Y_test):
-    a=time.time()
-    svr=svm.LinearSVC()
-    #svr=svm.SVC()
-    #Can do a grid search of gamma as well as C
-    #C_range = 10.0 ** arange(-2, 9)
-    #gamma_range = 10.0 ** arange(-5, 4)
-    #parameters = {'C':C_range,  'gamma':gamma_range}
-    #parameters={'C':arange(1, 10)}
-    #clf=grid_search.GridSearchCV(svr, parameters) #At least at the moment, this doesn't make much difference
-    clf=svr
-    print 'fitting now'
-    f=clf.fit(X_train, Y_train)
-    preds=clf.predict(X_test)
-    probs= clf.predict_proba(X_test)
-    #fpr, tpr,thresh = roc_curve(Y_test, probs[:, 1], pos_label=1)
-    #print thresh
-    #roc_auc = auc(fpr, tpr)
-    #w = clf.coef_[0]
-    #a = -w[0] / w[1]
-    #xx = linspace(min(min(X_train[:, 0]), min(X_test[:, 0])),max(max(X_train[:, 0]), max(X_test[:, 0])))
-    #yy = a * xx - (clf.intercept_[0]) / w[1]
-    #plot(xx, yy, 'k')
-    #show()
-    
-    print
-    print 'Support vector machine'
-    print 'Time taken', time.time()-a, 's'
-    print 'Accuracy', sum(preds==Y_test)/(float)(len(preds))
-    mismatched=preds[preds!=Y_test]
-    
-    print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
-    
-    fpr2, tpr2, auc2 = roc(probs[:, 0], Y_test)
-    return fpr2, tpr2, auc2
-    
-#    plot(fpr, tpr, 'b')
-#    plot(fpr2, tpr2, 'g')
-#    print 'Scikit AUC', roc_auc
-#    print 'My AUC', auc2
-#    show()
-#    return fpr, tpr, roc_auc
-"""
 
 
 #SVM using the SVC routine with cubic kernel
-#returns fpr = fp/(tp+fn) and tpr = tp/(tp+fn) and area under curve of roc
 def support_vm3(X_train, Y_train, X_test, Y_test):
     a=time.time()
     svr=svm.SVC(kernel='poly', degree = 3, probability=True)
-    #svr=svm.SVC()
-    #Can do a grid search of gamma as well as C
-    #C_range = 10.0 ** arange(-2, 9)
-    #gamma_range = 10.0 ** arange(-5, 4)
-    #parameters = {'C':C_range,  'gamma':gamma_range}
-    #parameters={'C':arange(1, 10)}
-    #clf=grid_search.GridSearchCV(svr, parameters) #At least at the moment, this doesn't make much difference
     clf=svr
     print 'fitting now'
     f=clf.fit(X_train, Y_train)
     preds=clf.predict(X_test)
     probs= clf.predict_proba(X_test)
-    #fpr, tpr,thresh = roc_curve(Y_test, probs[:, 1], pos_label=1)
-    #print thresh
-    #roc_auc = auc(fpr, tpr)
-    #w = clf.coef_[0]
-    #a = -w[0] / w[1]
-    #xx = linspace(min(min(X_train[:, 0]), min(X_test[:, 0])),max(max(X_train[:, 0]), max(X_test[:, 0])))
-    #yy = a * xx - (clf.intercept_[0]) / w[1]
-    #plot(xx, yy, 'k')
-    #show()
-    
     print
     print 'Support vector machine'
     print 'Time taken', time.time()-a, 's'
@@ -174,18 +85,28 @@ def support_vm3(X_train, Y_train, X_test, Y_test):
     mismatched=preds[preds!=Y_test]
     
     print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
-    
-    #fpr2, tpr2, auc2 = roc(probs[:, 0], Y_test)
-    #return fpr2, tpr2, auc2
-    return probs[:, 0], Y_test
-#    plot(fpr, tpr, 'b')
-#    plot(fpr2, tpr2, 'g')
-#    print 'Scikit AUC', roc_auc
-#    print 'My AUC', auc2
-#    show()
-#    return fpr, tpr, roc_auc
 
+    return probs[:, 0], Y_test
+
+
+#SVM using the SVC routine with radial basis function kernel
+def support_vmRBF(X_train, Y_train, X_test, Y_test):
+    a=time.time()
+    svr=svm.SVC(kernel='rbf', gamma = 0.5,  C = 2.0, probability=True)
+    clf=svr
+    print 'fitting now'
+    f=clf.fit(X_train, Y_train)
+    preds=clf.predict(X_test)
+    probs= clf.predict_proba(X_test)
+    print
+    print 'Support vector machine'
+    print 'Time taken', time.time()-a, 's'
+    print 'Accuracy', sum(preds==Y_test)/(float)(len(preds))
+    mismatched=preds[preds!=Y_test]
     
+    print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
+
+    return probs[:, 0], Y_test
     
     
 #A bagged RF where GridSearchCV finds the optimum number of trees between 1 and 11
@@ -236,8 +157,6 @@ def boost_RF(X_train, Y_train, X_test, Y_test):
     print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
     
     probs=classifier.predict_proba(X_test)[:, 0]
-    #fpr, tpr, auc=roc(probs, Y_test)
-    #return fpr, tpr, auc
     return probs, Y_test
 
 

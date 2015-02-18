@@ -7,10 +7,11 @@ from sklearn import datasets
 from sklearn.cross_validation import train_test_split
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import classification_report
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier,  AdaBoostClassifier
 from sklearn.svm import SVC
 from pylab import *
 from sklearn import preprocessing
+from sklearn.neighbors import KNeighborsClassifier
 
 
 feats=genfromtxt('sncosmo_des_fit.txt', dtype='str', comments='#')
@@ -23,27 +24,30 @@ X=f[types!=-9, :]
 Y=types[types!=-9]
 
 X_scaled = preprocessing.scale(X)
+print("mean of values in X_scaled is: ", numpy.mean(X_scaled))
+print("std of values in X_scaled is: ",  numpy.std(X_scaled))
+print("range of values in X_scaled is: ",  numpy.ptp(X_scaled))
 
 #grid_search can only deal with binary classification, and needs class labels 
-#either {0,1} or {-1,1}
-for index in range(len(Y)):
-    if Y[index]!=1:
-        Y[index]=0
+#either {0,1} or {-1,1}. Note this changes the order of 1A and 'not 1A' classes
+Y[(Y!=1)]=0
 
 #Split dataset randomly into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(
-    X, Y, test_size=0.5, random_state=0)
+    X_scaled, Y, test_size=0.5, random_state=0)
 
 #Check there are only two classes
 print("Unique classes are: ",  numpy.unique(Y))
 
+X_train_T = numpy.transpose(X_train)
+covar_matrix = numpy.cov(X_train_T)
 
-# Set the parameters for optimisation and the optimisation metric
-#tuned_parameters = [{'criterion': ['gini'], 'n_estimators': [3, 500],
-#                     'max_features': [2, 4]},
-#                    {'criterion': ['entropy'], 'n_estimators': [3, 500], 'max_features':[2, 4]}]
+#Set the parameters for optimisation and the optimisation metric
+#tuned_parameters = [{'metric': ['minkowski'], 'n_neighbors': [10, 15, 20]},
+#                     {'metric': ['mahalanobis'], 'n_neighbors': [10, 15, 20]}]
+#'**kwargs':[{'V':covar_matrix}]
 
-tuned_parameters = [{'kernel':['poly'], 'degree':[2, 3, 4], 'C':[0.5, 1]}]
+tuned_parameters = [{'n_estimators':[400, 1000, 2000], }]
 
 score = 'roc_auc'
 
@@ -52,7 +56,7 @@ start_time = time.time()
 print("# Tuning hyper-parameters for %s \n" % score)
 
 #Create the grid search classification object and fit it to data
-clf = GridSearchCV(SVC(), tuned_parameters, cv=5, scoring=score)
+clf = GridSearchCV(AdaBoostClassifier(), tuned_parameters, cv=5, scoring=score)
 clf.fit(X_train, y_train)
 
 print("Best parameter set found on development set: \n")
@@ -102,8 +106,11 @@ print()
 
 fpr2,  tpr2,  auc2 = ml_algorithms.roc(bestprobs[:, 1], y_test)
 
-print("My best estimator AUC is %s \n" %(auc2))
-    
+print("My best estimator AUC is %s " %(auc2))
+#print("Best metric is: %s " %(clf.best_estimator_.metric))
+print("Best n_estimators is: %s " %(clf.best_estimator_.n_estimators))
+#print("Best degree is: %s " %(clf.best_estimator_.degree))
+#print("Best gamma is %s " %(clf.best_estimator_.gamma))
     
     
     

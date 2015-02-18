@@ -242,14 +242,19 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
         probs1_repeat, Y_test1_repeat=ml_algorithms.support_vm(X_test, Y_test, X_train, Y_train)
         probs7, Y_test7=ml_algorithms.support_vm3(X_train, Y_train, X_test, Y_test)
         probs7_repeat, Y_test7_repeat=ml_algorithms.support_vm3(X_test, Y_test, X_train, Y_train)
+        probs8, Y_test8=ml_algorithms.support_vmRBF(X_train, Y_train, X_test, Y_test)
+        probs8_repeat, Y_test8_repeat=ml_algorithms.support_vmRBF(X_test, Y_test, X_train, Y_train)
         
         f1, t1, a1=ml_algorithms.roc(probs1, Y_test1)
         f1_repeat, t1_repeat, a1_repeat=ml_algorithms.roc(probs1_repeat, Y_test1_repeat)
         f7, t7, a7=ml_algorithms.roc(probs7, Y_test7)
         f7_repeat, t7_repeat, a7_repeat=ml_algorithms.roc(probs7_repeat, Y_test7_repeat)
+        f8, t8, a8=ml_algorithms.roc(probs8, Y_test8)
+        f8_repeat, t8_repeat, a8_repeat=ml_algorithms.roc(probs8_repeat, Y_test8_repeat)
         
         a1_mean = (a1+a1_repeat)/2.0
         a7_mean = (a7+a7_repeat)/2.0
+        a8_mean = (a8+a8_repeat)/2.0
     #plot_probs(X_test, Y_test, probs)
 
     #calculate ROC curve values
@@ -277,6 +282,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     if SVM:
         print 'SVM',a1_mean
         print 'Cubic SVM', a7_mean
+        print 'RBF SVM',  a8_mean
     print 'Bayes', a2_mean
     print 'KNN', a3_mean
     print 'Random forest', a4_mean
@@ -293,6 +299,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     C5 ='#00b159' #green
     C6 ='#fd85ec' #pink
     C7 ='#a27e2c' #brown
+    C8 ='#40e0d0' #cyan
     
     linew=2.5
 
@@ -301,6 +308,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     if SVM:
         plot(f1, t1, C1, lw=linew)
         plot(f7, t7, C7, lw=linew)
+        plot(f8, t8, C8, lw=linew)
     plot(f2, t2, C2, lw=linew)
     plot(f3, t3, C3, lw=linew)
     plot(f4, t4, C4, lw=linew)
@@ -312,7 +320,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     ax.set_aspect(1.0)
     setup_plot(ax)
     if SVM:
-        legend(('SVM (%.3f)' %(a1), 'Cubic SVM (%.3f)' %(a7),  'Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4), 
+        legend(('SVM (%.3f)' %(a1), 'Cubic SVM (%.3f)' %(a7),  'RBF SVM (%.3f)' %(a8),  'Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4), 
         'Ada Forest (%.3f)' %(a6)),  loc='lower right',  frameon=True, bbox_to_anchor=(0.95, 0.05), fontsize=18)
     else:
         legend(('Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4), \
