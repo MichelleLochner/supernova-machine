@@ -47,7 +47,7 @@ covar_matrix = numpy.cov(X_train_T)
 #                     {'metric': ['mahalanobis'], 'n_neighbors': [10, 15, 20]}]
 #'**kwargs':[{'V':covar_matrix}]
 
-tuned_parameters = [{'n_estimators':[400, 1000, 2000], }]
+tuned_parameters = [{'kernel':['rbf'], 'C':[0.5, 1, 2] }]
 
 score = 'roc_auc'
 
@@ -56,7 +56,7 @@ start_time = time.time()
 print("# Tuning hyper-parameters for %s \n" % score)
 
 #Create the grid search classification object and fit it to data
-clf = GridSearchCV(AdaBoostClassifier(), tuned_parameters, cv=5, scoring=score)
+clf = GridSearchCV(SVC(probability=True), tuned_parameters, cv=5, scoring=score)
 clf.fit(X_train, y_train)
 
 print("Best parameter set found on development set: \n")
@@ -76,6 +76,7 @@ print("The score are computed on the full evaluation set. \n")
     
 y_true, y_pred = y_test, clf.predict(X_test)
 probs= clf.predict_proba(X_test)
+dec_values = clf.best_estimator_.decision_function(X_test)
 
 end_time = time.time()
 
@@ -83,8 +84,9 @@ print("Time taken was %s s \n" %(end_time-start_time))
 
 #Select the 2nd column of probs for the roc calculation as these are the probs 
 #of being class 1 (i.e. being a 1A SN), for comparison with grid_search's own score values
-fpr,  tpr,  auc = ml_algorithms.roc(probs[:, 1], y_test)
-print("My area under the curve is: %s \n"  %(auc))
+#fpr,  tpr,  auc = ml_algorithms.roc(probs[:, 1], y_test)
+fpr,  tpr,  auc = ml_algorithms.roc(dec_values, y_test)
+print("My area under the curve from dec_vals is: %s \n"  %(auc))
 
 #figure(figsize=(10, 10))
 #C1='#a21d21' #dark red
@@ -106,9 +108,9 @@ print()
 
 fpr2,  tpr2,  auc2 = ml_algorithms.roc(bestprobs[:, 1], y_test)
 
-print("My best estimator AUC is %s " %(auc2))
+print("My best estimator AUC from preds is %s " %(auc2))
 #print("Best metric is: %s " %(clf.best_estimator_.metric))
-print("Best n_estimators is: %s " %(clf.best_estimator_.n_estimators))
+print("Best C is: %s " %(clf.best_estimator_.C))
 #print("Best degree is: %s " %(clf.best_estimator_.degree))
 #print("Best gamma is %s " %(clf.best_estimator_.gamma))
     
