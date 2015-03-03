@@ -1,6 +1,7 @@
 from pylab import *
 from sklearn import *
-import max_ml_algorithms as ml_algorithms, pywt, os, math, time
+import max_ml_algorithms as ml_algorithms
+import pywt, os, math, time
 from sklearn.decomposition import PCA, KernelPCA,  SparsePCA,  FastICA
 from sklearn.lda import LDA
 #from gapp import dgp
@@ -245,6 +246,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
         probs8, Y_test8=ml_algorithms.support_vmRBF(X_train, Y_train, X_test, Y_test)
         probs8_repeat, Y_test8_repeat=ml_algorithms.support_vmRBF(X_test, Y_test, X_train, Y_train)
         
+        #calculate ROC curve values
         f1, t1, a1=ml_algorithms.roc(probs1, Y_test1)
         f1_repeat, t1_repeat, a1_repeat=ml_algorithms.roc(probs1_repeat, Y_test1_repeat)
         f7, t7, a7=ml_algorithms.roc(probs7, Y_test7)
@@ -255,6 +257,31 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
         a1_mean = (a1+a1_repeat)/2.0
         a7_mean = (a7+a7_repeat)/2.0
         a8_mean = (a8+a8_repeat)/2.0
+        
+        #calculate F1 values
+        F1_score1 = ml_algorithms.F1(probs1, Y_test1)
+        F1_score1_repeat = ml_algorithms.F1(probs1_repeat, Y_test1_repeat)
+        F1_score7 = ml_algorithms.F1(probs7, Y_test7)
+        F1_score7_repeat = ml_algorithms.F1(probs7_repeat, Y_test7_repeat)
+        F1_score8 = ml_algorithms.F1(probs8, Y_test8)
+        F1_score8_repeat = ml_algorithms.F1(probs8_repeat, Y_test8_repeat)
+        
+        F1_score1_mean = 0.5*(F1_score1+F1_score1_repeat)
+        F1_score7_mean = 0.5*(F1_score7+F1_score7_repeat)
+        F1_score8_mean = 0.5*(F1_score8+F1_score8_repeat)
+        
+        #calculate Kessler FoM values
+        FoM1 = ml_algorithms.FoM(probs1, Y_test1)
+        FoM1_repeat = ml_algorithms.FoM(probs1_repeat, Y_test1_repeat)
+        FoM7 = ml_algorithms.FoM(probs7, Y_test7)
+        FoM7_repeat = ml_algorithms.FoM(probs7_repeat, Y_test7_repeat)
+        FoM8 = ml_algorithms.FoM(probs8, Y_test8)
+        FoM8_repeat = ml_algorithms.FoM(probs8_repeat, Y_test8_repeat)
+        
+        FoM1_mean = 0.5*(FoM1+FoM1_repeat)
+        FoM7_mean = 0.5*(FoM7+FoM7_repeat)
+        FoM8_mean = 0.5*(FoM8+FoM8_repeat)
+        
     #plot_probs(X_test, Y_test, probs)
 
     #calculate ROC curve values
@@ -263,6 +290,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     f3, t3, a3=ml_algorithms.roc(probs3, Y_test3)
     f3_repeat, t3_repeat, a3_repeat=ml_algorithms.roc(probs3_repeat, Y_test3_repeat)
     f4, t4, a4=ml_algorithms.roc(probs4, Y_test4)
+    print("RF threshold = 0.5 fpr: %s" %(f4[250]))
     f4_repeat, t4_repeat, a4_repeat=ml_algorithms.roc(probs4_repeat, Y_test4_repeat)
     if probs5 != -9999:
         f5, t5, a5=ml_algorithms.roc(probs5, Y_test5)
@@ -277,17 +305,56 @@ def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
     #a5_mean = (a5+a5_repeat)/2.0
     a6_mean = (a6+a6_repeat)/2.0
     
+    #calculate F1 values
+    F1_score2 = ml_algorithms.F1(probs2, Y_test2)
+    F1_score2_repeat = ml_algorithms.F1(probs2_repeat, Y_test2_repeat)
+    F1_score3 = ml_algorithms.F1(probs3, Y_test3)
+    F1_score3_repeat = ml_algorithms.F1(probs3_repeat, Y_test3_repeat)
+    F1_score4 = ml_algorithms.F1(probs4, Y_test4)
+    F1_score4_repeat = ml_algorithms.F1(probs4_repeat, Y_test4_repeat)
+    if probs5 != -9999:
+        F1_score5 = ml_algorithms.F1(probs5, Y_test5)
+        F1_score5_repeat = ml_algorithms.F1(probs5_repeat, Y_test5_repeat)
+    F1_score6 = ml_algorithms.F1(probs6, Y_test6)
+    F1_score6_repeat = ml_algorithms.F1(probs6_repeat, Y_test6_repeat)
+    
+    F1_score2_mean = 0.5*(F1_score2+F1_score2_repeat)
+    F1_score3_mean = 0.5*(F1_score3+F1_score3_repeat)
+    F1_score4_mean = 0.5*(F1_score4+F1_score4_repeat)
+    #F1_score5_mean = 0.5*(F1_score5+F1_score5_repeat)
+    F1_score6_mean = 0.5*(F1_score6+F1_score6_repeat)
+    
+    #calculate Kessler FoM values
+    FoM2 = ml_algorithms.FoM(probs2, Y_test2)
+    FoM2_repeat = ml_algorithms.FoM(probs2_repeat, Y_test2_repeat)
+    FoM3 = ml_algorithms.FoM(probs3, Y_test3)
+    FoM3_repeat = ml_algorithms.FoM(probs3_repeat, Y_test3_repeat)
+    FoM4 = ml_algorithms.FoM(probs4, Y_test4)
+    FoM4_repeat = ml_algorithms.FoM(probs4_repeat, Y_test4_repeat)
+    if probs5 != -9999:
+        print("RNN WARNING")
+        FoM5 = ml_algorithms.FoM(probs5,Y_test5)
+        FoM5_repeat = ml_algorithms.FoM(probs5_repeat,Y_test5_repeat)
+    FoM6 = ml_algorithms.FoM(probs6, Y_test6)
+    FoM6_repeat = ml_algorithms.FoM(probs6_repeat, Y_test6_repeat)
+    
+    FoM2_mean = 0.5*(FoM2+FoM2_repeat)
+    FoM3_mean = 0.5*(FoM3+FoM3_repeat)
+    FoM4_mean = 0.5*(FoM4+FoM4_repeat)
+    #FoM5_mean = 0.5*(FoM5+FoM5_repeat)
+    FoM6_mean = 0.5*(FoM6+FoM6_repeat)
+    
     print
-    print 'AUC:'
+    print 'AUC, F1, FoM:'
     if SVM:
-        print 'SVM',a1_mean
-        print 'Cubic SVM', a7_mean
-        print 'RBF SVM',  a8_mean
-    print 'Bayes', a2_mean
-    print 'KNN', a3_mean
-    print 'Random forest', a4_mean
-   # print 'RNN',  a5
-    print 'AdaBoost forest',  a6_mean
+        print 'SVM', a1_mean,  F1_score1_mean,  FoM1_mean
+        print 'Cubic SVM', a7_mean,  F1_score7_mean,  FoM7_mean
+        print 'RBF SVM',  a8_mean,  F1_score8_mean,  FoM8_mean
+    print 'Bayes', a2_mean,  F1_score2_mean,  FoM2_mean
+    print 'KNN', a3_mean,  F1_score3_mean,  FoM3_mean
+    print 'Random forest', a4_mean,  F1_score4_mean,  FoM4_mean
+   # print 'RNN',  a5, F1_score5_mean, FoM5_mean
+    print 'AdaBoost forest',  a6_mean,  F1_score6_mean,  FoM6_mean
     
 
     figure(figsize=(10, 10))

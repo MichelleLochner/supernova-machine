@@ -14,7 +14,7 @@ from sklearn import preprocessing
 from sklearn.neighbors import KNeighborsClassifier
 
 
-feats=genfromtxt('sncosmo_des_fit.txt', dtype='str', comments='#')
+feats=genfromtxt('sncosmo_des_fit_emcee.txt', dtype='str', comments='#')
 
 #Get features from classified samples
 f=array(feats[:, 5:10], dtype='float')
@@ -39,19 +39,9 @@ X_train, X_test, y_train, y_test = train_test_split(
 #Check there are only two classes
 print("Unique classes are: ",  numpy.unique(Y))
 
-X_train_T = numpy.transpose(X_train)
-covar_matrix = numpy.cov(X_train_T)
-
 #Set the parameters for optimisation and the optimisation metric
-#tuned_parameters = [{'metric': ['minkowski'], 'n_neighbors': [10, 15, 20]},
-#                     {'metric': ['mahalanobis'], 'n_neighbors': [10, 15, 20]}]
-#'**kwargs':[{'V':covar_matrix}]
-
 tuned_parameters = [{'kernel':['rbf'], 'C':[0.5, 1, 2] }]
-
 score = 'roc_auc'
-
-start_time = time.time()
 
 print("# Tuning hyper-parameters for %s \n" % score)
 
@@ -78,33 +68,28 @@ y_true, y_pred = y_test, clf.predict(X_test)
 probs= clf.predict_proba(X_test)
 dec_values = clf.best_estimator_.decision_function(X_test)
 
-end_time = time.time()
-
-print("Time taken was %s s \n" %(end_time-start_time))
+abs_dec_values = numpy.absolute(dec_values)
+max_val = numpy.amax(abs_dec_values)
+new_dec_values = dec_values/(2.0*max_val) + 0.5 #Normalise to -0.5 to 0.5
 
 #Select the 2nd column of probs for the roc calculation as these are the probs 
 #of being class 1 (i.e. being a 1A SN), for comparison with grid_search's own score values
 #fpr,  tpr,  auc = ml_algorithms.roc(probs[:, 1], y_test)
 fpr,  tpr,  auc = ml_algorithms.roc(dec_values, y_test)
 print("My area under the curve from dec_vals is: %s \n"  %(auc))
-
-#figure(figsize=(10, 10))
-#C1='#a21d21' #dark red
-#linew = 2.5
-#plot(f1, t1, C1, lw=linew)
-    
-#show()
     
 print(classification_report(y_true, y_pred))
 print()
 
-#Use the optimum parameter, instead of searching for optimum params each time
+#Use the best estimator
 clf.best_estimator_.fit(X_train, y_train)
 bestprobs = clf.best_estimator_.predict_proba(X_test)
 
 print("The first ten values in bestprobs: \n")
 print(bestprobs[:10])
 print()
+print("The first ten values in y_test are: \n")
+print(y_test[:10])
 
 fpr2,  tpr2,  auc2 = ml_algorithms.roc(bestprobs[:, 1], y_test)
 
@@ -113,7 +98,27 @@ print("My best estimator AUC from preds is %s " %(auc2))
 print("Best C is: %s " %(clf.best_estimator_.C))
 #print("Best degree is: %s " %(clf.best_estimator_.degree))
 #print("Best gamma is %s " %(clf.best_estimator_.gamma))
+
+weight = 3.0
+
+preds=2*ones(len(y_test))
+preds = numpy.argmax(bestprobs, 1)
+
+TP=sum((preds==1) & (y_test==1))
+FP=sum((preds==1) & (y_test!=1))
+TN=sum((preds!=1) & (y_test!=1))
+FN=sum((preds!=1) & (y_test==1))
     
+if TP == 0 or FP == 0 or FN == 0:
+    FoM=np.append(FoM, -9999)
+else:
+    efficiency = float(TP)/(TP+FN)
+    purity = float(TP)/(TP+weight*FP)
+    FoM=efficiency*purity 
+
+print("Efficiency is %s" %(efficiency))
+print("Purity is %s" %(purity))
+print("FoM is %s" %(FoM))
     
     
     

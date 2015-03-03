@@ -4,7 +4,7 @@ from sklearn import preprocessing
 import max_ml_algorithms as ml_algorithms, max_tools as tools
 from sklearn.cross_validation import train_test_split
 
-feats=genfromtxt('sncosmo_des_fit.txt', dtype='str', comments='#')
+feats=genfromtxt('sncosmo_des_fit_emcee.txt', dtype='str', comments='#')
 
 #Features
 f=array(feats[:, 5:10], dtype='float')
