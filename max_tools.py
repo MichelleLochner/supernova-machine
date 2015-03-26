@@ -4,6 +4,11 @@ import max_ml_algorithms as ml_algorithms
 import pywt, os, math, time
 from sklearn.decomposition import PCA, KernelPCA,  SparsePCA,  FastICA
 from sklearn.lda import LDA
+import numpy as np
+import max_grid_search as grid_search
+from sklearn.ensemble import RandomForestClassifier,  AdaBoostClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.cross_validation import train_test_split
 #from gapp import dgp
 
 rcParams['font.family']='serif'
@@ -219,191 +224,378 @@ def setup_plot(ax):
     #subplots_adjust(bottom=0.25,left=0.15)
 
 
+#Find the misclassified examples
+def misclassifications(probs, X_test, Y_test):
+    
+    preds = argmax(probs, axis=1) + 1
+    
+    FP_indices = (preds == 1) & (Y_test != 1)
+    FN_indices = (preds != 1) & (Y_test == 1)
+    TP_indices = (preds == 1) & (Y_test == 1)
+    TN_indices = (preds != 1) & (Y_test != 1)
+    
+    #plot_histograms(X_test, FP_indices, TP_indices)
+    
+    FP = X_test[FP_indices, :]
+    FN = X_test[FN_indices, :]
+    TP = X_test[TP_indices, :]
+    TN = X_test[TN_indices, :]
+    
+    #print('The number of RF FPs: %s' %(RF_FP.shape[0]))
+    #print('The number of RF FNs: %s' %(RF_FN.shape[0]))
+    #print('The number of RF TPs: %s' %(RF_TP.shape[0]))
+    #print('The number of RF TNs: %s' %(RF_TN.shape[0]))
+    
+    return FP, FN, TP, TN
+
+
+
+def plot_histograms(X_test, indices1, indices2):
+    
+    hist1, bins1 = np.histogram(X_test[indices1, 3])
+    hist1 = hist1.astype(float)/(np.amax(hist1))
+    width1 = 0.7*(bins1[1]-bins1[0])
+    centre1 = (bins1[:-1]+bins1[1:])/2
+    my_hist1 = plt.bar(centre1, hist1, align='center', width=width1)
+
+    show
+
+    hist2, bins2 = np.histogram(X_test[indices2, 3])
+    hist2 = hist2.astype(float)/(np.amax(hist2))
+    width2 = 0.7*(bins2[1]-bins2[0])
+    centre2 = (bins2[:-1]+bins2[1:])/2
+    my_hist2 = plt.bar(centre2, hist2, align='center', width=width2, color='r')
+
+    show
+
+
 
 #Run classification algorithms, with or without the SVM (it's slow)
-def run_ml(X_train, Y_train, X_test, Y_test, **kwargs):
-    SVM=False
-    if 'run_svm' in kwargs and kwargs['run_svm']==True:
-       SVM=True 
+def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
+    
+    n_features = float(X_train.shape[1])
+    
+    #Lets try optimising KNN
+    KNN_param_dict = {'n_neighbors':[10, 15, 20, 25, 30], 'weights':['uniform', 'distance']}
+    KNN_params = grid_search.KNN_optimiser(X_train, Y_train, X_test, Y_test, KNN_param_dict)
+    RF_param_dict = {'n_estimators':[500, 1000, 1500], 'criterion':['gini', 'entropy']}
+    RF_params = grid_search.RF_optimiser(X_train, Y_train, X_test, Y_test, RF_param_dict)
+    Boost_param_dict = {'base_estimator':[RandomForestClassifier(400, 'entropy'), RandomForestClassifier(600, 'entropy')], 
+                                          'n_estimators':[2, 3, 5, 10]}
+    Boost_params = grid_search.Boost_optimiser(X_train, Y_train, X_test, Y_test, Boost_param_dict)
+    RBF_param_dict = {'C':[0.5, 1, 2, 4], 'gamma':[1/(n_features**2), 1/n_features, 1/sqrt(n_features)]}
+    RBF_params = grid_search.RBF_optimiser(X_train, Y_train, X_test, Y_test, RBF_param_dict)
     
     #Run classifiers with 2-fold cross validation
-    probs2, Y_test2=ml_algorithms.bayes(X_train,  Y_train,  X_test,  Y_test)
-    probs2_repeat, Y_test2_repeat=ml_algorithms.bayes(X_test, Y_test, X_train, Y_train)
-    probs3, Y_test3=ml_algorithms.nearest_neighbours(X_train, Y_train, X_test, Y_test)
-    probs3_repeat, Y_test3_repeat=ml_algorithms.nearest_neighbours(X_test, Y_test, X_train, Y_train)
-    probs4, Y_test4=ml_algorithms.forest(X_train, Y_train, X_test, Y_test)
-    probs4_repeat, Y_test4_repeat=ml_algorithms.forest(X_test, Y_test, X_train, Y_train)
-    probs5, Y_test5=ml_algorithms.radius_neighbours(X_train, Y_train, X_test, Y_test)
-    probs5_repeat, Y_test5_repeat=ml_algorithms.radius_neighbours(X_test, Y_test, X_train, Y_train)
-    probs6, Y_test6=ml_algorithms.boost_RF(X_train, Y_train, X_test, Y_test)
-    probs6_repeat, Y_test6_repeat=ml_algorithms.boost_RF(X_test, Y_test, X_train, Y_train)
+    probsNB=ml_algorithms.bayes(X_train,  Y_train,  X_test,  Y_test)
+    probsNB_repeat=ml_algorithms.bayes(X_test, Y_test, X_train, Y_train)
+    probsKNN=ml_algorithms.nearest_neighbours(X_train, Y_train, X_test, Y_test, KNN_params['n_neighbors'], KNN_params['weights'])
+    probsKNN_repeat=ml_algorithms.nearest_neighbours(X_test, Y_test, X_train, Y_train, KNN_params['n_neighbors'], KNN_params['weights'])
+    probsRF=ml_algorithms.forest(X_train, Y_train, X_test, Y_test, RF_params['n_estimators'], RF_params['criterion'])
+    probsRF_repeat=ml_algorithms.forest(X_test, Y_test, X_train, Y_train, RF_params['n_estimators'], RF_params['criterion'])
+    #probsRNN=ml_algorithms.radius_neighbours(X_train, Y_train, X_test, Y_test)
+    #probsRNN_repeat=ml_algorithms.radius_neighbours(X_test, Y_test, X_train, Y_train)
+    probsBoost=ml_algorithms.boost_RF(X_train, Y_train, X_test, Y_test, Boost_params['base_estimator'], Boost_params['n_estimators'])
+    probsBoost_repeat=ml_algorithms.boost_RF(X_test, Y_test, X_train, Y_train, Boost_params['base_estimator'], Boost_params['n_estimators'])
+    probsRBF=ml_algorithms.support_vmRBF(X_train, Y_train, X_test, Y_test, RBF_params['C'], RBF_params['gamma'])
+    probsRBF_repeat=ml_algorithms.support_vmRBF(X_test, Y_test, X_train, Y_train, RBF_params['C'], RBF_params['gamma'])
+    probsANN=ml_algorithms.ANN(X_train, Y_train, X_test, Y_test)
+    probsANN_repeat=ml_algorithms.ANN(X_test, Y_test, X_train, Y_train)
+    probs_MCS,  hard_indices_test = ml_algorithms.MCSprobs(probsRF, probsRBF,probsBoost)
+    probs_MCS_repeat,  hard_indices_train = ml_algorithms.MCSprobs(probsRF_repeat, probsRBF_repeat, probsBoost_repeat)
 
-    if SVM:
-        probs1, Y_test1=ml_algorithms.support_vm(X_train, Y_train, X_test, Y_test)
-        probs1_repeat, Y_test1_repeat=ml_algorithms.support_vm(X_test, Y_test, X_train, Y_train)
-        probs7, Y_test7=ml_algorithms.support_vm3(X_train, Y_train, X_test, Y_test)
-        probs7_repeat, Y_test7_repeat=ml_algorithms.support_vm3(X_test, Y_test, X_train, Y_train)
-        probs8, Y_test8=ml_algorithms.support_vmRBF(X_train, Y_train, X_test, Y_test)
-        probs8_repeat, Y_test8_repeat=ml_algorithms.support_vmRBF(X_test, Y_test, X_train, Y_train)
-        
-        #calculate ROC curve values
-        f1, t1, a1=ml_algorithms.roc(probs1, Y_test1)
-        f1_repeat, t1_repeat, a1_repeat=ml_algorithms.roc(probs1_repeat, Y_test1_repeat)
-        f7, t7, a7=ml_algorithms.roc(probs7, Y_test7)
-        f7_repeat, t7_repeat, a7_repeat=ml_algorithms.roc(probs7_repeat, Y_test7_repeat)
-        f8, t8, a8=ml_algorithms.roc(probs8, Y_test8)
-        f8_repeat, t8_repeat, a8_repeat=ml_algorithms.roc(probs8_repeat, Y_test8_repeat)
-        
-        a1_mean = (a1+a1_repeat)/2.0
-        a7_mean = (a7+a7_repeat)/2.0
-        a8_mean = (a8+a8_repeat)/2.0
-        
-        #calculate F1 values
-        F1_score1 = ml_algorithms.F1(probs1, Y_test1)
-        F1_score1_repeat = ml_algorithms.F1(probs1_repeat, Y_test1_repeat)
-        F1_score7 = ml_algorithms.F1(probs7, Y_test7)
-        F1_score7_repeat = ml_algorithms.F1(probs7_repeat, Y_test7_repeat)
-        F1_score8 = ml_algorithms.F1(probs8, Y_test8)
-        F1_score8_repeat = ml_algorithms.F1(probs8_repeat, Y_test8_repeat)
-        
-        F1_score1_mean = 0.5*(F1_score1+F1_score1_repeat)
-        F1_score7_mean = 0.5*(F1_score7+F1_score7_repeat)
-        F1_score8_mean = 0.5*(F1_score8+F1_score8_repeat)
-        
-        #calculate Kessler FoM values
-        FoM1 = ml_algorithms.FoM(probs1, Y_test1)
-        FoM1_repeat = ml_algorithms.FoM(probs1_repeat, Y_test1_repeat)
-        FoM7 = ml_algorithms.FoM(probs7, Y_test7)
-        FoM7_repeat = ml_algorithms.FoM(probs7_repeat, Y_test7_repeat)
-        FoM8 = ml_algorithms.FoM(probs8, Y_test8)
-        FoM8_repeat = ml_algorithms.FoM(probs8_repeat, Y_test8_repeat)
-        
-        FoM1_mean = 0.5*(FoM1+FoM1_repeat)
-        FoM7_mean = 0.5*(FoM7+FoM7_repeat)
-        FoM8_mean = 0.5*(FoM8+FoM8_repeat)
-        
-    #plot_probs(X_test, Y_test, probs)
+    #make a record of examples the classifiers in MCS disagreed on
+    hard_X_train = X_train[hard_indices_train, :]
+    hard_Y_train = Y_train[hard_indices_train]
+    hard_X_test = X_test[hard_indices_test, :]
+    hard_Y_test = Y_test[hard_indices_test]
+    
+    #make a record of the FP and FN from RF
+    RF_FP, RF_FN,  RF_TP, RF_TN = misclassifications(probsRF, X_test, Y_test)
+    
+    #Calculate frequency probabilities
+    #freq_probNB = frequency_probabilities(probsNB, X_test, Y_test, X_test_err, None)
 
     #calculate ROC curve values
-    f2, t2, a2=ml_algorithms.roc(probs2, Y_test2)
-    f2_repeat, t2_repeat, a2_repeat=ml_algorithms.roc(probs2_repeat, Y_test2_repeat)
-    f3, t3, a3=ml_algorithms.roc(probs3, Y_test3)
-    f3_repeat, t3_repeat, a3_repeat=ml_algorithms.roc(probs3_repeat, Y_test3_repeat)
-    f4, t4, a4=ml_algorithms.roc(probs4, Y_test4)
-    print("RF threshold = 0.5 fpr: %s" %(f4[250]))
-    f4_repeat, t4_repeat, a4_repeat=ml_algorithms.roc(probs4_repeat, Y_test4_repeat)
-    if probs5 != -9999:
-        f5, t5, a5=ml_algorithms.roc(probs5, Y_test5)
-        f5_repeat, t5_repeat, a5_repeat=ml_algorithms.roc(probs5_repeat, Y_test5_repeat)
-    f6, t6, a6=ml_algorithms.roc(probs6, Y_test6)
-    f6_repeat, t6_repeat, a6_repeat = ml_algorithms.roc(probs6_repeat, Y_test6_repeat)
+    fNB, tNB, aNB=ml_algorithms.roc(probsNB, Y_test)
+    fNB_repeat, tNB_repeat, aNB_repeat=ml_algorithms.roc(probsNB_repeat, Y_train)
+    fKNN, tKNN, aKNN=ml_algorithms.roc(probsKNN,  Y_test)
+    fKNN_repeat, tKNN_repeat, aKNN_repeat=ml_algorithms.roc(probsKNN_repeat, Y_train)
+    fRF, tRF, aRF=ml_algorithms.roc(probsRF, Y_test)
+    fRF_repeat, tRF_repeat, aRF_repeat=ml_algorithms.roc(probsRF_repeat, Y_train)
+    #fRNN, tRNN, aRNN=ml_algorithms.roc(probsRNN, Y_test)
+    #fRNN_repeat, tRNN_repeat, aRNN_repeat=ml_algorithms.roc(probsRNN_repeat, Y_train)
+    fBoost, tBoost, aBoost=ml_algorithms.roc(probsBoost, Y_test)
+    fBoost_repeat, tBoost_repeat, aBoost_repeat=ml_algorithms.roc(probsBoost_repeat, Y_train)
+    fRBF, tRBF, aRBF=ml_algorithms.roc(probsRBF, Y_test)
+    fRBF_repeat, tRBF_repeat, aRBF_repeat=ml_algorithms.roc(probsRBF_repeat, Y_train)
+    fANN, tANN, aANN=ml_algorithms.roc(probsANN, Y_test)
+    fANN_repeat, tANN_repeat, aANN_repeat=ml_algorithms.roc(probsANN_repeat, Y_train)
+    fMCS,  tMCS, aMCS = ml_algorithms.roc(probs_MCS, Y_test)
+    fMCS_repeat, tMCS_repeat, aMCS_repeat = ml_algorithms.roc(probs_MCS_repeat, Y_train)
 
     #calculate mean AUC over cross validation
-    a2_mean = (a2+a2_repeat)/2.0
-    a3_mean = (a3+a3_repeat)/2.0
-    a4_mean = (a4+a4_repeat)/2.0
-    #a5_mean = (a5+a5_repeat)/2.0
-    a6_mean = (a6+a6_repeat)/2.0
+    aNB_mean = (aNB+aNB_repeat)/2.0
+    aKNN_mean = (aKNN+aKNN_repeat)/2.0
+    aRF_mean = (aRF+aRF_repeat)/2.0
+    #aRNN_mean = (aRNN+aRNN_repeat)/2.0
+    aBoost_mean = (aBoost+aBoost_repeat)/2.0
+    aRBF_mean = (aRBF+aRBF_repeat)/2.0
+    aANN_mean = (aANN+aANN_repeat)/2.0
+    aMCS_mean = (aMCS+aMCS_repeat)/2.0
     
     #calculate F1 values
-    F1_score2 = ml_algorithms.F1(probs2, Y_test2)
-    F1_score2_repeat = ml_algorithms.F1(probs2_repeat, Y_test2_repeat)
-    F1_score3 = ml_algorithms.F1(probs3, Y_test3)
-    F1_score3_repeat = ml_algorithms.F1(probs3_repeat, Y_test3_repeat)
-    F1_score4 = ml_algorithms.F1(probs4, Y_test4)
-    F1_score4_repeat = ml_algorithms.F1(probs4_repeat, Y_test4_repeat)
-    if probs5 != -9999:
-        F1_score5 = ml_algorithms.F1(probs5, Y_test5)
-        F1_score5_repeat = ml_algorithms.F1(probs5_repeat, Y_test5_repeat)
-    F1_score6 = ml_algorithms.F1(probs6, Y_test6)
-    F1_score6_repeat = ml_algorithms.F1(probs6_repeat, Y_test6_repeat)
+    F1_scoreNB, F1_thresholdNB = ml_algorithms.F1(probsNB, Y_test)
+    F1_scoreNB_repeat, F1_thresholdNB_repeat = ml_algorithms.F1(probsNB_repeat, Y_train)
+    F1_scoreKNN, F1_thresholdKNN = ml_algorithms.F1(probsKNN, Y_test)
+    F1_scoreKNN_repeat, F1_thresholdKNN_repeat = ml_algorithms.F1(probsKNN_repeat, Y_train)
+    F1_scoreRF,  F1_thresholdRF = ml_algorithms.F1(probsRF, Y_test)
+    F1_scoreRF_repeat,  F1_thresholdRF_repeat = ml_algorithms.F1(probsRF_repeat, Y_train)
+    #F1_scoreRNN = ml_algorithms.F1(probsRNN, Y_test)
+    #F1_scoreRNN_repeat = ml_algorithms.F1(probsRNN_repeat, Y_train)
+    F1_scoreBoost,  F1_thresholdBoost = ml_algorithms.F1(probsBoost, Y_test)
+    F1_scoreBoost_repeat,  F1_thresholdBoost_repeat = ml_algorithms.F1(probsBoost_repeat, Y_train)
+    F1_scoreRBF, F1_thresholdRBF = ml_algorithms.F1(probsRBF, Y_test)
+    F1_scoreRBF_repeat, F1_thresholdRBF_repeat = ml_algorithms.F1(probsRBF_repeat, Y_train)
+    F1_scoreANN, F1_thresholdANN = ml_algorithms.F1(probsANN, Y_test)
+    F1_scoreANN_repeat, F1_thresholdANN_repeat = ml_algorithms.F1(probsANN_repeat, Y_train)
+    F1_scoreMCS, F1_thresholdMCS = ml_algorithms.F1(probs_MCS, Y_test)
+    F1_scoreMCS_repeat, F1_thresholdMCS_repeat = ml_algorithms.F1(probs_MCS_repeat, Y_train)
     
-    F1_score2_mean = 0.5*(F1_score2+F1_score2_repeat)
-    F1_score3_mean = 0.5*(F1_score3+F1_score3_repeat)
-    F1_score4_mean = 0.5*(F1_score4+F1_score4_repeat)
-    #F1_score5_mean = 0.5*(F1_score5+F1_score5_repeat)
-    F1_score6_mean = 0.5*(F1_score6+F1_score6_repeat)
+    F1_scoreNB_mean = 0.5*(F1_scoreNB+F1_scoreNB_repeat)
+    F1_scoreKNN_mean = 0.5*(F1_scoreKNN+F1_scoreKNN_repeat)
+    F1_scoreRF_mean = 0.5*(F1_scoreRF+F1_scoreRF_repeat)
+    #F1_scoreRNN_mean = 0.5*(F1_scoreRNN+F1_scoreRNN_repeat)
+    F1_scoreBoost_mean = 0.5*(F1_scoreBoost+F1_scoreBoost_repeat)
+    F1_scoreRBF_mean = 0.5*(F1_scoreRBF+F1_scoreRBF_repeat)
+    F1_scoreANN_mean = 0.5*(F1_scoreANN+F1_scoreANN_repeat)
+    F1_scoreMCS_mean = 0.5*(F1_scoreMCS+F1_scoreMCS_repeat)
     
     #calculate Kessler FoM values
-    FoM2 = ml_algorithms.FoM(probs2, Y_test2)
-    FoM2_repeat = ml_algorithms.FoM(probs2_repeat, Y_test2_repeat)
-    FoM3 = ml_algorithms.FoM(probs3, Y_test3)
-    FoM3_repeat = ml_algorithms.FoM(probs3_repeat, Y_test3_repeat)
-    FoM4 = ml_algorithms.FoM(probs4, Y_test4)
-    FoM4_repeat = ml_algorithms.FoM(probs4_repeat, Y_test4_repeat)
-    if probs5 != -9999:
-        print("RNN WARNING")
-        FoM5 = ml_algorithms.FoM(probs5,Y_test5)
-        FoM5_repeat = ml_algorithms.FoM(probs5_repeat,Y_test5_repeat)
-    FoM6 = ml_algorithms.FoM(probs6, Y_test6)
-    FoM6_repeat = ml_algorithms.FoM(probs6_repeat, Y_test6_repeat)
+    FoMNB, FoM_thresholdNB = ml_algorithms.FoM(probsNB, Y_test)
+    FoMNB_repeat, FoM_thresholdNB_repeat = ml_algorithms.FoM(probsNB_repeat, Y_train)
+    FoMKNN, FoM_thresholdKNN = ml_algorithms.FoM(probsKNN, Y_test)
+    FoMKNN_repeat, FoM_thresholdKNN_repeat = ml_algorithms.FoM(probsKNN_repeat, Y_train)
+    FoMRF, FoM_thresholdRF = ml_algorithms.FoM(probsRF, Y_test)
+    FoMRF_repeat, FoM_thresholdRF_repeat = ml_algorithms.FoM(probsRF_repeat, Y_train)
+    #FoMRNN = ml_algorithms.FoM(probsRNN,Y_test)
+    #FoMRNN_repeat = ml_algorithms.FoM(probsRNN_repeat,Y_train)
+    FoMBoost, FoM_thresholdBoost = ml_algorithms.FoM(probsBoost, Y_test)
+    FoMBoost_repeat, FoM_thresholdBoost_repeat = ml_algorithms.FoM(probsBoost_repeat, Y_train)
+    FoMRBF, FoM_thresholdRBF = ml_algorithms.FoM(probsRBF, Y_test)
+    FoMRBF_repeat, FoM_thresholdRBF_repeat = ml_algorithms.FoM(probsRBF_repeat, Y_train)
+    FoMANN, FoM_thresholdANN = ml_algorithms.FoM(probsANN, Y_test)
+    FoMANN_repeat, FoM_thresholdANN_repeat = ml_algorithms.FoM(probsANN_repeat, Y_train)
+    FoMMCS, FoM_thresholdMCS = ml_algorithms.FoM(probs_MCS, Y_test)
+    FoMMCS_repeat, FoM_thresholdMCS_repeat = ml_algorithms.FoM(probs_MCS_repeat, Y_train)
     
-    FoM2_mean = 0.5*(FoM2+FoM2_repeat)
-    FoM3_mean = 0.5*(FoM3+FoM3_repeat)
-    FoM4_mean = 0.5*(FoM4+FoM4_repeat)
-    #FoM5_mean = 0.5*(FoM5+FoM5_repeat)
-    FoM6_mean = 0.5*(FoM6+FoM6_repeat)
+    FoMNB_mean = 0.5*(FoMNB+FoMNB_repeat)
+    FoMKNN_mean = 0.5*(FoMKNN+FoMKNN_repeat)
+    FoMRF_mean = 0.5*(FoMRF+FoMRF_repeat)
+    #FoMRNN_mean = 0.5*(FoMRNN+FoMRNN_repeat)
+    FoMBoost_mean = 0.5*(FoMBoost+FoMBoost_repeat)
+    FoMRBF_mean = 0.5*(FoMRBF+FoMRBF_repeat)
+    FoMANN_mean = 0.5*(FoMANN+FoMANN_repeat)
+    FoMMCS_mean = 0.5*(FoMMCS+FoMMCS_repeat)
     
+    #alt_FoMRF = ml_algorithms.alternative_FoM(probsRF, Y_test)
+    #print('Alternative RF FoM is: %s' %(alt_FoMRF))
+    
+    #Collate all results into a results array. Columns are AUC, F1, FoM, rows are classifiers
+    results = np.array([[aRBF_mean, F1_scoreRBF_mean, FoMRBF_mean], 
+                                   [aNB_mean, F1_scoreNB_mean, FoMNB_mean], 
+                                   [aKNN_mean, F1_scoreKNN_mean, FoMKNN_mean], 
+                                   [aRF_mean, F1_scoreRF_mean, FoMRF_mean], 
+                                   [aBoost_mean, F1_scoreBoost_mean, FoMBoost_mean], 
+                                   [aANN_mean, F1_scoreANN_mean, FoMANN_mean], 
+                                   [aMCS_mean, F1_scoreMCS_mean, FoMMCS_mean]])
+
+    thresholds = np.array([[F1_thresholdRBF, FoM_thresholdRBF], 
+                                        [F1_thresholdNB, FoM_thresholdNB], 
+                                        [F1_thresholdKNN, FoM_thresholdKNN], 
+                                        [F1_thresholdRF, FoM_thresholdRF], 
+                                        [F1_thresholdBoost, FoM_thresholdBoost], 
+                                        [F1_thresholdANN, FoM_thresholdANN], 
+                                        [F1_thresholdMCS, FoM_thresholdMCS]])
+    
+    """
     print
     print 'AUC, F1, FoM:'
-    if SVM:
-        print 'SVM', a1_mean,  F1_score1_mean,  FoM1_mean
-        print 'Cubic SVM', a7_mean,  F1_score7_mean,  FoM7_mean
-        print 'RBF SVM',  a8_mean,  F1_score8_mean,  FoM8_mean
-    print 'Bayes', a2_mean,  F1_score2_mean,  FoM2_mean
-    print 'KNN', a3_mean,  F1_score3_mean,  FoM3_mean
-    print 'Random forest', a4_mean,  F1_score4_mean,  FoM4_mean
-   # print 'RNN',  a5, F1_score5_mean, FoM5_mean
-    print 'AdaBoost forest',  a6_mean,  F1_score6_mean,  FoM6_mean
+    print 'RBF SVM',  results[0, 0],  results[0, 1],  results[0, 2]
+    print 'Bayes', results[1, 0],  results[1, 1], results[1, 2]
+    print 'KNN', results[2, 0],  results[2, 1],  results[2, 2]
+    print 'Random forest', results[3, 0],  results[3, 1],  results[3, 2]
+    #print 'RNN',  aRNN, F1_scoreRNN_mean, FoMRNN_mean
+    print 'AdaBoost forest',  results[4, 0],  results[4, 1],  results[4, 2]
+    print 'ANN',  results[5, 0], results[5, 1],  results[5, 2]
+    print 'MCS',  results[6, 0], results[6, 1], results[6, 2]
+    print
+    """
     
-
+    #Plot ROC curve
+    #plot_ROC(fRBF, tRBF, fNB, tNB, fKNN, tKNN, fRF, tRF, fBoost, tBoost, fANN, tANN, fMCS, tMCS, aRBF_mean, 
+    #         aNB_mean, aKNN_mean, aRF_mean, aBoost_mean, aANN_mean, aMCS_mean)
+    
+    
+    return results, thresholds
+    
+    
+    
+    
+#Plots a ROC curve for a variety of classifier fpr and tpr vectors, and plots the mid-point of the RF vector
+#i.e. the threshold =0.5 point
+def plot_ROC(fRBF, tRBF, fNB, tNB, fKNN, tKNN, fRF, tRF, fBoost, tBoost, fANN, tANN, fMCS, tMCS, aRBF_mean, 
+             aNB_mean, aKNN_mean, aRF_mean, aBoost_mean, aANN_mean, aMCS_mean):
+    #Create figure for ROC curve
     figure(figsize=(10, 10))
 
-    C1='#a21d21' #dark red
-    C2='#185aa9' #blue
-    C3='#f47d23' #orange
-    C4='#008c48' #purple
-    C5 ='#00b159' #green
-    C6 ='#fd85ec' #pink
-    C7 ='#a27e2c' #brown
-    C8 ='#40e0d0' #cyan
+    CANN='#a21d21' #brown
+    CNB='#185aa9' #blue
+    CKNN='#fdff00' #yellow
+    CRF='#008c48' #purple
+    CMCS ='#e74c3c' #red
+    CBoost ='#fd85ec' #pink
+    #CRNN ='#a27e2c' #brown
+    CRBF ='#40e0d0' #cyan
     
     linew=2.5
 
-    
     #plot ROC curves
-    if SVM:
-        plot(f1, t1, C1, lw=linew)
-        plot(f7, t7, C7, lw=linew)
-        plot(f8, t8, C8, lw=linew)
-    plot(f2, t2, C2, lw=linew)
-    plot(f3, t3, C3, lw=linew)
-    plot(f4, t4, C4, lw=linew)
-    #plot(f5, t5, C5, lw=linew)
-    plot(f6, t6, C6, lw=linew)
+    plot(fRBF, tRBF, CRBF, lw=linew)
+    plot(fNB, tNB, CNB, lw=linew)
+    plot(fKNN, tKNN, CKNN, lw=linew)
+    plot(fRF, tRF, CRF, lw=linew)
+    #plot(fRNN, tRNN, CRNN, lw=linew)
+    plot(fBoost, tBoost, CBoost, lw=linew)
+    plot(fANN, tANN, CANN, lw=linew)
+    plot(fMCS, tMCS, CMCS, lw=linew)
+    
+    #plot the threshold = 0.5 point
+    midX = int(round(fRF.shape[0]/2.0))
+    midY = int(round(tRF.shape[0]/2.0))
+    scatter(fRF[midX], tRF[midY], s=200, c='#000000')
+
     
     #Set plot parameters
     ax=gca()
     ax.set_aspect(1.0)
     setup_plot(ax)
-    if SVM:
-        legend(('SVM (%.3f)' %(a1), 'Cubic SVM (%.3f)' %(a7),  'RBF SVM (%.3f)' %(a8),  'Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4), 
-        'Ada Forest (%.3f)' %(a6)),  loc='lower right',  frameon=True, bbox_to_anchor=(0.95, 0.05), fontsize=18)
-    else:
-        legend(('Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4), \
-        'Ada Forest (%.3f)' %(a6)), loc='lower right',  frameon=True, bbox_to_anchor=(0.95, 0.05), fontsize=18)
-        
-    #legend(('Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4),  'RRN (%.3f)' %(a5), 
-    #'Ada Forest (%.3f)' %(a6)), loc='lower right',  frameon=True, bbox_to_anchor=(0.95, 0.05), fontsize=18)
-    #legend(('Naive Bayes (%.3f)' %(a2), 'KNN (%.3f)' %(a3), 'Random Forest (%.3f)' %(a4)), loc='lower right')
+    
+    legend(('RBF SVM (%.3f)' %(aRBF_mean),  'Naive Bayes (%.3f)' %(aNB_mean), 'KNN (%.3f)' %(aKNN_mean), 
+    'Random Forest (%.3f)' %(aRF_mean), 'Ada Forest (%.3f)' %(aBoost_mean), 'ANN (%.3f)' %(aANN_mean), 
+    'MCS (%.3f)' %(aMCS_mean)),  loc='lower right',  frameon=True, bbox_to_anchor=(0.95, 0.05), fontsize=18)
+    
     title('ROC Curve', fontsize=22)
     xlabel('False positive rate (contamination)', fontsize=18)
     ylabel('True positive rate (recall)', fontsize=18)
+    xlim([0, 1])
+    ylim([0, 1])
     
     subplots_adjust(bottom=0.08,left=0.05, top=0.92, right=0.95)
     show()
     
-#plot_lc('Simulations/SIMGEN_PUBLIC_DES/DES_SN319694.DAT')
-#plot_lc('Simulations/SIMGEN_PUBLIC_DES/DES_SN785053.DAT')
-    
 
+#Introduce bias into training set - doesn't work currently
+def split_data(X, Y, size, bias):
+    
+    if bias != None:
+        Pos_indices = Y==1
+        Neg_indices = Y!=1
+        
+        Positives = X[Pos_indices, :]
+        Negatives = X[Neg_indices, :]
+        Pos_classes = np.expand_dims(Y[Pos_indices], axis=1)
+        Neg_classes = np.expand_dims(Y[Neg_indices], axis=1)
+        
+        Positives = np.append(Positives, Pos_classes, axis=1)
+        Negatives = np.append(Negatives, Neg_classes, axis=1)
+        
+        Neg_proportion = (0.5*X.shape[0]-bias*Positives.shape[0])/Negatives.shape[0]
+        
+        Pos_train, Pos_test = train_test_split(Positives, test_size=1.0-bias, random_state = np.random.randint(100))
+        Neg_train, Neg_test = train_test_split(Negatives, test_size = 1.0-Neg_proportion, random_state = np.random.randint(100))
+        
+        X_train = np.append(Pos_train[:, :-1], Neg_train[:, :-1], axis=0)
+        Y_train = np.append(Pos_train[:, -1], Neg_train[:, -1], axis=0)
+        X_test = np.append(Pos_test[:, :-1], Neg_train[:, :-1], axis=0)
+        Y_test = np.append(Pos_test[:, -1], Neg_train[:, -1], axis=0)
+        
+        train_index = np.arange(X_train.shape[0])
+        np.random.shuffle(train_index)
+        test_index = np.arange(X_test.shape[0])
+        np.random.shuffle(test_index)
+        
+        X_train = X_train[train_index, :]
+        Y_train = Y_train[train_index]
+        X_test = X_test[test_index, :]
+        Y_test = Y_test[test_index]
+        
+        
+        
+    else:
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=size, random_state=np.random.randint(100))
+    
+    return X_train, Y_train, X_test, Y_test
+    
+    
+    
+    
+    
+def frequency_probabilities(probs, X_test, Y_test, X_test_err, params):
+        
+    #Create perturbations about each data point in Y_test
+    N_pert = 1000
+    N_classes = len(np.unique(Y_test))
+    N_features = X_test.shape[1]
+
+    sigma = np.random.uniform(0.5, 1.5)
+
+    perturbed_data = np.zeros((X_test.shape[0], X_test.shape[1], N_pert))
+    perturbed_features1 = np.zeros((X_test.shape[0], N_pert))
+    perturbed_features2 = np.zeros((X_test.shape[0], N_pert))
+
+    for counter in np.arange(X_test.shape[0]):
+        perturbed_features1[counter, :] = sigma*np.random.randn(N_pert) + X_test[counter, 0]
+        perturbed_features2[counter, :] = sigma*np.random.randn(N_pert) + X_test[counter, 1]
+
+    perturbed_data[:, 0, :] = perturbed_features1
+    perturbed_data[:, 1, :] = perturbed_features2
+
+    #Classify perturbed data
+    pert_probs = np.zeros((X_test.shape[0], 2, N_pert)) #NOTE I'M HARD CODING 2 CLASSES HERE
+
+    for counter in np.arange(X_test.shape[0]):
+        temp_data = perturbed_data[counter, :, :]
+        temp_data = temp_data.T
+        temp_result = ml_algorithms.support_vm(X_train, Y_train, temp_data, None)
+        pert_probs[counter, :, :] = temp_result.T
+            
+    pert_preds = np.argmax(pert_probs, axis=1)
+
+    #Calculate probabilities
+    calculated_probs = 1-np.mean(pert_preds, axis=1)
+        
+        
+    return freq_probs
+    
+    
+    
+def scale_data_with_errors(X, X_err):
+        
+    sigma = np.std(X, axis=0)
+    mean = np.mean(X, axis=0)
+    X_scaled = np.zeros(X.shape)
+    X_err_scaled = np.zeros(X_err.shape)
+    
+    for counter in np.arange(len(sigma)):
+        X_scaled[:, counter] = (X[:, counter]-mean[counter]*np.ones(X.shape[0]))/sigma[counter]
+        X_err_scaled[:, counter] = X_err_scaled[:, counter]/sigma[counter]
+    return X_scaled, X_err_scaled
+    
+    
+    
+    
+    
+    
+    
+    
