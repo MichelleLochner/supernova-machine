@@ -45,10 +45,10 @@ for run_counter in np.arange(N_runs):
     X_combined, Y, test_size=0.5, random_state=np.random.randint(100))
     
     #Seperate features and errors again
-    X_train = X_train_combined[:, :X.shape[1]]
-    X_train_err = X_train_combined[:, X.shape[1]:]
-    X_test = X_test_combined[:, :X.shape[1]]
-    X_test_err = X_test_combined[:, X.shape[1]:]
+    X_train = X_train_combined[:, :X_scaled.shape[1]]
+    X_train_err = X_train_combined[:, X_scaled.shape[1]:]
+    X_test = X_test_combined[:, :X_scaled.shape[1]]
+    X_test_err = X_test_combined[:, X_scaled.shape[1]:]
     
     results_temp, thresholds_temp = tools.run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err)
     results[:, :, run_counter] = results_temp

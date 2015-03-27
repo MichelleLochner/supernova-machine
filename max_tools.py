@@ -314,7 +314,16 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     RF_FP, RF_FN,  RF_TP, RF_TN = misclassifications(probsRF, X_test, Y_test)
     
     #Calculate frequency probabilities
-    #freq_probNB = frequency_probabilities(probsNB, X_test, Y_test, X_test_err, None)
+    freq_probsNB = frequency_probabilities(X_train, Y_train, X_test, Y_test, X_test_err, None)
+
+    print(freq_probsNB.shape)
+    print(freq_probsNB[:30])
+    print(probsNB[:30])
+    
+    plt.scatter(freq_probsNB, probsNB[:, 0])
+    plt.xlabel('Frequency Probabilities')
+    plt.ylabel('Probability Values')
+    plt.show()
 
     #calculate ROC curve values
     fNB, tNB, aNB=ml_algorithms.roc(probsNB, Y_test)
@@ -541,41 +550,33 @@ def split_data(X, Y, size, bias):
     
     
     
-def frequency_probabilities(probs, X_test, Y_test, X_test_err, params):
+def frequency_probabilities(X_train, Y_train, X_test, Y_test, X_test_err, params):
         
     #Create perturbations about each data point in Y_test
     N_pert = 1000
     N_classes = len(np.unique(Y_test))
     N_features = X_test.shape[1]
 
-    sigma = np.random.uniform(0.5, 1.5)
-
-    perturbed_data = np.zeros((X_test.shape[0], X_test.shape[1], N_pert))
-    perturbed_features1 = np.zeros((X_test.shape[0], N_pert))
-    perturbed_features2 = np.zeros((X_test.shape[0], N_pert))
-
-    for counter in np.arange(X_test.shape[0]):
-        perturbed_features1[counter, :] = sigma*np.random.randn(N_pert) + X_test[counter, 0]
-        perturbed_features2[counter, :] = sigma*np.random.randn(N_pert) + X_test[counter, 1]
-
-    perturbed_data[:, 0, :] = perturbed_features1
-    perturbed_data[:, 1, :] = perturbed_features2
+    perturbations = -999*np.ones((X_test.shape[0], X_test.shape[1], N_pert))
+    
+    for counter in np.arange(N_pert):
+        perturbations[:, :, counter] = X_test+np.random.randn(X_test.shape[0], X_test.shape[1])*X_test_err
 
     #Classify perturbed data
-    pert_probs = np.zeros((X_test.shape[0], 2, N_pert)) #NOTE I'M HARD CODING 2 CLASSES HERE
+    pert_probs = np.zeros((perturbations.shape[0], N_classes, perturbations.shape[2])) 
 
-    for counter in np.arange(X_test.shape[0]):
-        temp_data = perturbed_data[counter, :, :]
+    for counter in np.arange(perturbations.shape[0]):
+        temp_data = perturbations[counter, :, :]
         temp_data = temp_data.T
         temp_result = ml_algorithms.support_vm(X_train, Y_train, temp_data, None)
         pert_probs[counter, :, :] = temp_result.T
-            
+    
+
     pert_preds = np.argmax(pert_probs, axis=1)
 
-    #Calculate probabilities
-    calculated_probs = 1-np.mean(pert_preds, axis=1)
-        
-        
+    #Calculate probabilities of it being 1A
+    freq_probs = (np.sum((pert_preds==1), axis=1)).astype(float)/pert_preds.shape[1]
+    
     return freq_probs
     
     
@@ -584,12 +585,13 @@ def scale_data_with_errors(X, X_err):
         
     sigma = np.std(X, axis=0)
     mean = np.mean(X, axis=0)
-    X_scaled = np.zeros(X.shape)
-    X_err_scaled = np.zeros(X_err.shape)
+    X_scaled = -999*np.ones(X.shape)
+    X_err_scaled = -999*np.ones(X_err.shape)
     
     for counter in np.arange(len(sigma)):
         X_scaled[:, counter] = (X[:, counter]-mean[counter]*np.ones(X.shape[0]))/sigma[counter]
-        X_err_scaled[:, counter] = X_err_scaled[:, counter]/sigma[counter]
+        X_err_scaled[:, counter] = X_err[:, counter]/sigma[counter]
+    
     return X_scaled, X_err_scaled
     
     
