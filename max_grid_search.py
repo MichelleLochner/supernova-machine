@@ -11,10 +11,10 @@ def KNN_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     col_counter = 0
     auc_scores = np.zeros((len(param_dict['n_neighbors']), len(param_dict['weights'])))
     
-    for K in param_dict['n_neighbors']:
-        for W in param_dict['weights']:
+    for N_counter in param_dict['n_neighbors']:
+        for W_counter in param_dict['weights']:
             
-            probs=ml_algorithms.nearest_neighbours(X_train, Y_train, X_test, Y_test, K, W)
+            probs=ml_algorithms.nearest_neighbours(X_train, Y_train, X_test, N_counter, W_counter)
             fpr,  tpr,  auc_scores[row_counter, col_counter] = ml_algorithms.roc(probs, Y_test)
             
             col_counter += 1
@@ -42,10 +42,10 @@ def RF_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     col_counter = 0
     auc_scores = np.zeros((len(param_dict['n_estimators']), len(param_dict['criterion'])))
     
-    for N in param_dict['n_estimators']:
-        for C in param_dict['criterion']:
+    for N_counter in param_dict['n_estimators']:
+        for C_counter in param_dict['criterion']:
             
-            probs=ml_algorithms.forest(X_train, Y_train, X_test, Y_test, N, C)
+            probs=ml_algorithms.forest(X_train, Y_train, X_test, N_counter, C_counter)
             fpr,  tpr,  auc_scores[row_counter, col_counter] = ml_algorithms.roc(probs, Y_test)
             
             col_counter += 1
@@ -71,10 +71,10 @@ def Boost_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     col_counter = 0
     auc_scores = np.zeros((len(param_dict['base_estimator']), len(param_dict['n_estimators'])))
     
-    for B in param_dict['base_estimator']:
-        for N in param_dict['n_estimators']:
+    for B_counter in param_dict['base_estimator']:
+        for N_counter in param_dict['n_estimators']:
             
-            probs=ml_algorithms.boost_RF(X_train, Y_train, X_test, Y_test, B, N)
+            probs=ml_algorithms.boost_RF(X_train, Y_train, X_test, B_counter, N_counter)
             fpr,  tpr,  auc_scores[row_counter, col_counter] = ml_algorithms.roc(probs, Y_test)
             
             col_counter += 1
@@ -100,10 +100,10 @@ def RBF_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     col_counter = 0
     auc_scores = np.zeros((len(param_dict['C']), len(param_dict['gamma'])))
     
-    for C in param_dict['C']:
-        for G in param_dict['gamma']:
+    for C_counter in param_dict['C']:
+        for G_counter in param_dict['gamma']:
             
-            probs=ml_algorithms.support_vmRBF(X_train, Y_train, X_test, Y_test, C, G)
+            probs=ml_algorithms.support_vmRBF(X_train, Y_train, X_test, C_counter , G_counter)
             fpr,  tpr,  auc_scores[row_counter, col_counter] = ml_algorithms.roc(probs, Y_test)
             
             col_counter += 1

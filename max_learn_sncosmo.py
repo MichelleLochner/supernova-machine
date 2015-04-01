@@ -14,6 +14,9 @@ f = np.array(feats[:, [4, 6, 7, 8]], dtype='float')
 err = np.array(errors[:, [9, 11, 12, 13]], dtype='float')
 types = np.array(feats[:, 1], dtype='int')
 
+#Use fake features with known distribution for testing
+#f, err, types = tools.make_a_fake_dataset()
+
 X=f[types!=-9, :]
 Y=types[types!=-9]
 X_err = err[types!=-9, :]

@@ -150,7 +150,7 @@ def alternative_FoM(probs, Y_test):
     return FoM
 
 #SVM using the SVC routine 
-def support_vm(X_train, Y_train, X_test, Y_test, *args):
+def support_vm(X_train, Y_train, X_test, *args):
     
     a=time.time()
     
@@ -164,7 +164,7 @@ def support_vm(X_train, Y_train, X_test, Y_test, *args):
 
 
 #SVM using the SVC routine with cubic kernel
-def support_vm3(X_train, Y_train, X_test, Y_test):
+def support_vm3(X_train, Y_train, X_test, Y_test, ):
     a=time.time()
     svr=svm.SVC(kernel='poly', degree = 3, probability=True)
     clf=svr
@@ -184,9 +184,9 @@ def support_vm3(X_train, Y_train, X_test, Y_test):
 
 
 #SVM using the SVC routine with radial basis function kernel
-def support_vmRBF(X_train, Y_train, X_test, Y_test, *args):
+def support_vmRBF(X_train, Y_train, X_test, *args):
 
-    clf=svm.SVC(kernel='rbf', C = args[0], probability=True, gamma = args[1])
+    clf=svm.SVC(kernel='rbf', probability = True, C = args[0], gamma = args[1])
     f=clf.fit(X_train, Y_train)
     probs= clf.predict_proba(X_test)
 
@@ -194,9 +194,9 @@ def support_vmRBF(X_train, Y_train, X_test, Y_test, *args):
     
     
 #A bagged RF 
-def forest(X_train, Y_train, X_test, Y_test, *args):
+def forest(X_train, Y_train, X_test, *args):
 
-    clf = RandomForestClassifier(args[0], criterion=args[1]) 
+    clf = RandomForestClassifier(n_estimators = args[0], criterion=args[1]) 
     clf.fit(X_train, Y_train)
     probs=clf.predict_proba(X_test)
 
@@ -205,7 +205,7 @@ def forest(X_train, Y_train, X_test, Y_test, *args):
 
 
 #A boosted RF
-def boost_RF(X_train, Y_train, X_test, Y_test, *args):
+def boost_RF(X_train, Y_train, X_test, *args):
     
     classifier = AdaBoostClassifier(base_estimator = args[0], n_estimators = args[1])
     classifier.fit(X_train, Y_train)
@@ -217,9 +217,9 @@ def boost_RF(X_train, Y_train, X_test, Y_test, *args):
     
 
 #KNN classifier with weights going as 1/r
-def nearest_neighbours(X_train, Y_train, X_test, Y_test, *args):
+def nearest_neighbours(X_train, Y_train, X_test, *args):
 
-    clf=neighbors.KNeighborsClassifier(args[0], args[1])
+    clf=neighbors.KNeighborsClassifier(n_neighbors = args[0], weights = args[1])
     clf.fit(X_train, Y_train)
     probs=clf.predict_proba(X_test)
     
@@ -255,7 +255,7 @@ def radius_neighbours(X_train, Y_train, X_test, Y_test):
 
 
 #Naive Bayes classifier 
-def bayes(X_train, Y_train, X_test, Y_test, *args):
+def bayes(X_train, Y_train, X_test, *args):
 
     clf = GaussianNB()
     f=clf.fit(X_train, Y_train)    
@@ -367,11 +367,85 @@ def MCSpreds(probs1, probs2, probs3, probs4):
     return mode_preds
     
     
+"""
+def SkyNet_wrapper(X_train, Y_train, X_test, params, *args):
+    
+    #Write training and testing data to files
+    train_file = open(params['training_filepath'], 'w') #Must end _train.txt
+    test_file = open(params['testing_filepath'], 'w') #Must end _test.txt
+
+    value1 = (X_train.shape[1], '\n')
+    str_val1 = str(value)
+    value2 = (len(np.unique(Y_train)), '\n')
+    str_val2 = str(value2)
+    
+    train_file.write(str_val) #1st line is number of features
+    train_file.write(len(str_val2)) #2nd line is number of classes
+    
+    value1 = (X_test.shape[1], '\n')
+    str_val1 = str(value1)
+    value2 = (len(np.unique(Y_train)), '\n')
+    str_val2 = str(value2)
+    
+    test_file.write(X_test.shape[1], '\n') #1st line is number of features
+    test_file.write(len(np.unique(Y_train)), '\n') #2nd line is number of classes
+
+    for rows in np.arange(X_train.shape[0]):
+        for cols in np.arange(X_train.shape[1]):
+            train_file.write(str(X_train[rows, cols]))
+            train_file.write(',')
+            train_file.write(str(X_train[rows, cols]))
+            train_file.write(',')
+            train_file.write(str(X_train[rows, cols]))
+            train_file.write(',')
+            train_file.write(str(X_train[rows, cols]))
+            train_file.write(',')
+            train_file.write(str(X_train[rows, cols]))
+            train_file.write(',')
+            train_file.write('\n')
+            train_file.write(str(Y_train[rows]))
+            train_file.write(',')
+            train_file.write('\n')
+
+    for rows in np.arange(X_test.shape[0]):
+        for cols in np.arange(X_test.shape[1]):
+            test_file.write(str(X_test[rows, cols]))
+            test_file.write(',')
+            test_file.write(str(X_test[rows, cols]))
+            test_file.write(',')
+            test_file.write(str(X_test[rows, cols]))
+            test_file.write(',')
+            test_file.write(str(X_test[rows, cols]))
+            test_file.write(',')
+            test_file.write(str(X_test[rows, cols]))
+            test_file.write(',')
+            test_file.write('\n')
+            test_file.write(str(Y_test[rows]))
+            test_file.write(',')
+            test_file.write('\n')
+    del rows
+
+    train_file.close()
+    test_file.close()
+
+    #Write parameter file
+    param_file = open(params['params_filepath'], 'w')
+    
+    param_file.write('#input_root \n')
+    param_file.write(params['training_filepath'][:-8]) #Removes _train.txt 
+    param_file.write('#output_root \n')
+    param_file.write(params['output_filepath']) #Must be in the form /file/path/namestem
+    param_file.write('#nhid \n')
+    param_file.write(params[])
+    
+    #Run SkyNet
+    
+    #Read probabilities from output file
     
     
-    
-    
-    
+    return probs
+
+"""
     
     
     

@@ -276,6 +276,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     n_features = float(X_train.shape[1])
     
     #Lets try optimising KNN
+    NB_params = {}
     KNN_param_dict = {'n_neighbors':[10, 15, 20, 25, 30], 'weights':['uniform', 'distance']}
     KNN_params = grid_search.KNN_optimiser(X_train, Y_train, X_test, Y_test, KNN_param_dict)
     RF_param_dict = {'n_estimators':[500, 1000, 1500], 'criterion':['gini', 'entropy']}
@@ -285,20 +286,21 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     Boost_params = grid_search.Boost_optimiser(X_train, Y_train, X_test, Y_test, Boost_param_dict)
     RBF_param_dict = {'C':[0.5, 1, 2, 4], 'gamma':[1/(n_features**2), 1/n_features, 1/sqrt(n_features)]}
     RBF_params = grid_search.RBF_optimiser(X_train, Y_train, X_test, Y_test, RBF_param_dict)
+    ANN_params = {}
     
     #Run classifiers with 2-fold cross validation
-    probsNB=ml_algorithms.bayes(X_train,  Y_train,  X_test,  Y_test)
-    probsNB_repeat=ml_algorithms.bayes(X_test, Y_test, X_train, Y_train)
-    probsKNN=ml_algorithms.nearest_neighbours(X_train, Y_train, X_test, Y_test, KNN_params['n_neighbors'], KNN_params['weights'])
-    probsKNN_repeat=ml_algorithms.nearest_neighbours(X_test, Y_test, X_train, Y_train, KNN_params['n_neighbors'], KNN_params['weights'])
-    probsRF=ml_algorithms.forest(X_train, Y_train, X_test, Y_test, RF_params['n_estimators'], RF_params['criterion'])
-    probsRF_repeat=ml_algorithms.forest(X_test, Y_test, X_train, Y_train, RF_params['n_estimators'], RF_params['criterion'])
+    probsNB=ml_algorithms.bayes(X_train,  Y_train,  X_test)
+    probsNB_repeat=ml_algorithms.bayes(X_test, Y_test, X_train)
+    probsKNN=ml_algorithms.nearest_neighbours(X_train, Y_train, X_test, KNN_params['n_neighbors'], KNN_params['weights'])
+    probsKNN_repeat=ml_algorithms.nearest_neighbours(X_test, Y_test, X_train, KNN_params['n_neighbors'], KNN_params['weights'])
+    probsRF=ml_algorithms.forest(X_train, Y_train, X_test, RF_params['n_estimators'], RF_params['criterion'])
+    probsRF_repeat=ml_algorithms.forest(X_test, Y_test, X_train, RF_params['n_estimators'], RF_params['criterion'])
     #probsRNN=ml_algorithms.radius_neighbours(X_train, Y_train, X_test, Y_test)
     #probsRNN_repeat=ml_algorithms.radius_neighbours(X_test, Y_test, X_train, Y_train)
-    probsBoost=ml_algorithms.boost_RF(X_train, Y_train, X_test, Y_test, Boost_params['base_estimator'], Boost_params['n_estimators'])
-    probsBoost_repeat=ml_algorithms.boost_RF(X_test, Y_test, X_train, Y_train, Boost_params['base_estimator'], Boost_params['n_estimators'])
-    probsRBF=ml_algorithms.support_vmRBF(X_train, Y_train, X_test, Y_test, RBF_params['C'], RBF_params['gamma'])
-    probsRBF_repeat=ml_algorithms.support_vmRBF(X_test, Y_test, X_train, Y_train, RBF_params['C'], RBF_params['gamma'])
+    probsBoost=ml_algorithms.boost_RF(X_train, Y_train, X_test, Boost_params['base_estimator'], Boost_params['n_estimators'])
+    probsBoost_repeat=ml_algorithms.boost_RF(X_test, Y_test, X_train, Boost_params['base_estimator'], Boost_params['n_estimators'])
+    probsRBF=ml_algorithms.support_vmRBF(X_train, Y_train, X_test, RBF_params['C'], RBF_params['gamma']) 
+    probsRBF_repeat=ml_algorithms.support_vmRBF(X_test, Y_test, X_train, RBF_params['C'], RBF_params['gamma'])
     probsANN=ml_algorithms.ANN(X_train, Y_train, X_test, Y_test)
     probsANN_repeat=ml_algorithms.ANN(X_test, Y_test, X_train, Y_train)
     probs_MCS,  hard_indices_test = ml_algorithms.MCSprobs(probsRF, probsRBF,probsBoost)
@@ -313,18 +315,54 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     #make a record of the FP and FN from RF
     RF_FP, RF_FN,  RF_TP, RF_TN = misclassifications(probsRF, X_test, Y_test)
     
-    #Calculate frequency probabilities
-    freq_probsNB = frequency_probabilities(X_train, Y_train, X_test, Y_test, X_test_err, None)
-
-    print(freq_probsNB.shape)
-    print(freq_probsNB[:30])
-    print(probsNB[:30])
     
+    #Calculate frequency probabilities
+    freq_probsNB = frequency_probabilities(X_train, Y_train, X_test, X_test_err, ml_algorithms.bayes, NB_params)
+    freq_probsKNN = frequency_probabilities(X_train, Y_train, X_test, X_test_err, ml_algorithms.nearest_neighbours, 
+                                            KNN_params['n_neighbors'], KNN_params['weights'])
+    freq_probsRF = frequency_probabilities(X_train, Y_train, X_test, X_test_err, ml_algorithms.forest, 
+                                           RF_params['n_estimators'], RF_params['criterion'])
+    freq_probsBoost = frequency_probabilities(X_train, Y_train, X_test, X_test_err, 
+                                              ml_algorithms.boost_RF, Boost_params['base_estimator'], Boost_params['n_estimators'])
+    freq_probsRBF = frequency_probabilities(X_train, Y_train, X_test, X_test_err, 
+                                            ml_algorithms.support_vmRBF, RBF_params['C'], RBF_params['gamma']) 
+    #freq_probsANN = frequency_probabilities(X_train, Y_train, X_test, X_test_err, ml_algorithms.ANN, ANN_params)
+    
+    plt.figure()    
     plt.scatter(freq_probsNB, probsNB[:, 0])
+    plt.title('Naive Bayes')
     plt.xlabel('Frequency Probabilities')
     plt.ylabel('Probability Values')
     plt.show()
-
+    
+    plt.figure()
+    plt.scatter(freq_probsKNN, probsKNN[:, 0])
+    plt.title('K Nearest Neighbours')
+    plt.xlabel('Frequency Probabilities')
+    plt.ylabel('Probability Values')
+    plt.show()
+    
+    plt.figure()
+    plt.scatter(freq_probsRF, probsRF[:, 0])
+    plt.title('Random Forest')
+    plt.xlabel('Frequency Probabilities')
+    plt.ylabel('Probability Values')
+    plt.show()
+    
+    plt.figure()
+    plt.scatter(freq_probsBoost, probsBoost[:, 0])
+    plt.title('AdaBoost Random Forest')
+    plt.xlabel('Frequency Probabilities')
+    plt.ylabel('Probability Values')
+    plt.show()
+    
+    plt.figure()
+    plt.scatter(freq_probsRBF, probsRBF[:, 0])
+    plt.title('Support Vector Machine with RBF Kernel')
+    plt.xlabel('Frequency Probabilities')
+    plt.ylabel('Probability Values')
+    plt.show()
+    
     #calculate ROC curve values
     fNB, tNB, aNB=ml_algorithms.roc(probsNB, Y_test)
     fNB_repeat, tNB_repeat, aNB_repeat=ml_algorithms.roc(probsNB_repeat, Y_train)
@@ -550,11 +588,11 @@ def split_data(X, Y, size, bias):
     
     
     
-def frequency_probabilities(X_train, Y_train, X_test, Y_test, X_test_err, params):
+def frequency_probabilities(X_train, Y_train, X_test, X_test_err, classifier, *params):
         
     #Create perturbations about each data point in Y_test
-    N_pert = 1000
-    N_classes = len(np.unique(Y_test))
+    N_pert = 100
+    N_classes = len(np.unique(Y_train))
     N_features = X_test.shape[1]
 
     perturbations = -999*np.ones((X_test.shape[0], X_test.shape[1], N_pert))
@@ -568,21 +606,25 @@ def frequency_probabilities(X_train, Y_train, X_test, Y_test, X_test_err, params
     for counter in np.arange(perturbations.shape[0]):
         temp_data = perturbations[counter, :, :]
         temp_data = temp_data.T
-        temp_result = ml_algorithms.support_vm(X_train, Y_train, temp_data, None)
+        if len(params) != 2:
+            temp_result = classifier(X_train, Y_train, temp_data)
+        else:
+            temp_result = classifier(X_train, Y_train, temp_data, params[0], params[1])
         pert_probs[counter, :, :] = temp_result.T
     
 
+    #Note this defines 1A class as '0' regardless of whether input data is classed '1', '2', '3'
     pert_preds = np.argmax(pert_probs, axis=1)
 
     #Calculate probabilities of it being 1A
-    freq_probs = (np.sum((pert_preds==1), axis=1)).astype(float)/pert_preds.shape[1]
+    freq_probs = (np.sum((pert_preds==0), axis=1)).astype(float)/pert_preds.shape[1]
     
     return freq_probs
     
     
     
 def scale_data_with_errors(X, X_err):
-        
+    
     sigma = np.std(X, axis=0)
     mean = np.mean(X, axis=0)
     X_scaled = -999*np.ones(X.shape)
@@ -593,6 +635,37 @@ def scale_data_with_errors(X, X_err):
         X_err_scaled[:, counter] = X_err[:, counter]/sigma[counter]
     
     return X_scaled, X_err_scaled
+    
+    
+def make_a_fake_dataset():
+
+    #Produce dataset
+    means = np.array([[4., 4.], [0., 0.]])
+    sigmas = np.array([[2.3, 2.1], [2.4, 1.9]])
+
+    features11 = sigmas[0, 0]*np.random.randn(100) + means[0, 0]
+    features12 = sigmas[0, 1]*np.random.randn(100) + means[0, 1]
+    features21 = sigmas[1, 0]*np.random.randn(100) + means[1, 0]
+    features22 = sigmas[1, 1]*np.random.randn(100) + means[1, 1]
+
+    dataset = np.zeros((200, 2))
+    classes = np.zeros(200)
+
+    dataset[:100, 0] = features11
+    dataset[:100, 1] = features12
+    dataset[100:, 0] = features21
+    dataset[100:, 1] = features22
+    classes[100:] = np.ones(100)
+    classes = classes + 1
+    
+    err = np.random.randn(dataset.shape[0], dataset.shape[1])
+    
+    
+    return dataset, err, classes
+    
+    
+    
+    
     
     
     
