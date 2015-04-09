@@ -224,58 +224,34 @@ def setup_plot(ax):
     #subplots_adjust(bottom=0.25,left=0.15)
 
 
-#Find the misclassified examples
-def misclassifications(probs, X_test, Y_test):
-    
-    preds = argmax(probs, axis=1) + 1
-    
-    FP_indices = (preds == 1) & (Y_test != 1)
-    FN_indices = (preds != 1) & (Y_test == 1)
-    TP_indices = (preds == 1) & (Y_test == 1)
-    TN_indices = (preds != 1) & (Y_test != 1)
-    
-    #plot_histograms(X_test, FP_indices, TP_indices)
-    
-    FP = X_test[FP_indices, :]
-    FN = X_test[FN_indices, :]
-    TP = X_test[TP_indices, :]
-    TN = X_test[TN_indices, :]
-    
-    #print('The number of RF FPs: %s' %(RF_FP.shape[0]))
-    #print('The number of RF FNs: %s' %(RF_FN.shape[0]))
-    #print('The number of RF TPs: %s' %(RF_TP.shape[0]))
-    #print('The number of RF TNs: %s' %(RF_TN.shape[0]))
-    
-    return FP, FN, TP, TN
 
 
 
-def plot_histograms(X_test, indices1, indices2):
-    
-    hist1, bins1 = np.histogram(X_test[indices1, 3])
-    hist1 = hist1.astype(float)/(np.amax(hist1))
-    width1 = 0.7*(bins1[1]-bins1[0])
-    centre1 = (bins1[:-1]+bins1[1:])/2
-    my_hist1 = plt.bar(centre1, hist1, align='center', width=width1)
-
-    show
-
-    hist2, bins2 = np.histogram(X_test[indices2, 3])
-    hist2 = hist2.astype(float)/(np.amax(hist2))
-    width2 = 0.7*(bins2[1]-bins2[0])
-    centre2 = (bins2[:-1]+bins2[1:])/2
-    my_hist2 = plt.bar(centre2, hist2, align='center', width=width2, color='r')
-
-    show
-
-
-
-#Run classification algorithms, with or without the SVM (it's slow)
 def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
+    
+    """
+    Optimise, then run each of the classifiers, calculate ROC AUC, F1 and Kessler FoM from 
+    their results. Also calculate probabilities and compare with a frequentist probability measure.
+    Plots of classifier probability vs. frequency probability are produced for each classifier.
+    Note the script pauses as each plot is shown and only resumes once the plot window is closed.
+    
+    INPUTS:
+    X_train - An array of the training set features, of size (N_samples, N_features)
+    Y_train - An array of the training set classes, of size (N_samples,). Class labels are 1, 2, 3
+    X_test - An array of the testing set features, of size (N_samples, N_features)
+    Y_test - An array of the testing set classes, of size (N_samples,). Class labels are 1, 2, 3
+    X_train_err - An array of the errors on the training set features, of size (N_samples, N_features)
+    X_test_err - An array of the errors on the testing set features, of size (N_samples, N_features)
+    
+    OUTPUTS:
+    results - An array of performance criteria achieved by each classifier, of size (N_classifiers, N_criteria)
+    thresholds - An array of the optimum probability threshold for each classifier wrt F1 and FoM, of size
+                        (N_classifiers, 2)
+    """
     
     n_features = float(X_train.shape[1])
     
-    #Lets try optimising KNN
+    #Find optimum parameters (from a user defined dictionary of possibilities) for each classifier
     NB_params = {}
     KNN_param_dict = {'n_neighbors':[10, 15, 20, 25, 30], 'weights':['uniform', 'distance']}
     KNN_params = grid_search.KNN_optimiser(X_train, Y_train, X_test, Y_test, KNN_param_dict)
@@ -295,8 +271,6 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     probsKNN_repeat=ml_algorithms.nearest_neighbours(X_test, Y_test, X_train, KNN_params['n_neighbors'], KNN_params['weights'])
     probsRF=ml_algorithms.forest(X_train, Y_train, X_test, RF_params['n_estimators'], RF_params['criterion'])
     probsRF_repeat=ml_algorithms.forest(X_test, Y_test, X_train, RF_params['n_estimators'], RF_params['criterion'])
-    #probsRNN=ml_algorithms.radius_neighbours(X_train, Y_train, X_test, Y_test)
-    #probsRNN_repeat=ml_algorithms.radius_neighbours(X_test, Y_test, X_train, Y_train)
     probsBoost=ml_algorithms.boost_RF(X_train, Y_train, X_test, Boost_params['base_estimator'], Boost_params['n_estimators'])
     probsBoost_repeat=ml_algorithms.boost_RF(X_test, Y_test, X_train, Boost_params['base_estimator'], Boost_params['n_estimators'])
     probsRBF=ml_algorithms.support_vmRBF(X_train, Y_train, X_test, RBF_params['C'], RBF_params['gamma']) 
@@ -315,7 +289,6 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     #make a record of the FP and FN from RF
     RF_FP, RF_FN,  RF_TP, RF_TN = misclassifications(probsRF, X_test, Y_test)
     
-    
     #Calculate frequency probabilities
     freq_probsNB = frequency_probabilities(X_train, Y_train, X_test, X_test_err, ml_algorithms.bayes, NB_params)
     freq_probsKNN = frequency_probabilities(X_train, Y_train, X_test, X_test_err, ml_algorithms.nearest_neighbours, 
@@ -328,11 +301,13 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
                                             ml_algorithms.support_vmRBF, RBF_params['C'], RBF_params['gamma']) 
     #freq_probsANN = frequency_probabilities(X_train, Y_train, X_test, X_test_err, ml_algorithms.ANN, ANN_params)
     
+    #Plot frequency probabilities against classifier probabilities
     plt.figure()    
     plt.scatter(freq_probsNB, probsNB[:, 0])
-    plt.title('Naive Bayes')
+    plt.title('Naive Bayes - Fake Data')
     plt.xlabel('Frequency Probabilities')
     plt.ylabel('Probability Values')
+    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/NB_0.7.png', facecolor='white')
     plt.show()
     
     plt.figure()
@@ -340,6 +315,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     plt.title('K Nearest Neighbours')
     plt.xlabel('Frequency Probabilities')
     plt.ylabel('Probability Values')
+    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/KNN_0.7.png', facecolor='white')
     plt.show()
     
     plt.figure()
@@ -347,6 +323,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     plt.title('Random Forest')
     plt.xlabel('Frequency Probabilities')
     plt.ylabel('Probability Values')
+    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/RF_0.7.png', facecolor='white')
     plt.show()
     
     plt.figure()
@@ -354,6 +331,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     plt.title('AdaBoost Random Forest')
     plt.xlabel('Frequency Probabilities')
     plt.ylabel('Probability Values')
+    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/Boost_0.7.png', facecolor='white')
     plt.show()
     
     plt.figure()
@@ -361,6 +339,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     plt.title('Support Vector Machine with RBF Kernel')
     plt.xlabel('Frequency Probabilities')
     plt.ylabel('Probability Values')
+    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/RBF_0.7.png', facecolor='white')
     plt.show()
     
     #calculate ROC curve values
@@ -370,8 +349,6 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     fKNN_repeat, tKNN_repeat, aKNN_repeat=ml_algorithms.roc(probsKNN_repeat, Y_train)
     fRF, tRF, aRF=ml_algorithms.roc(probsRF, Y_test)
     fRF_repeat, tRF_repeat, aRF_repeat=ml_algorithms.roc(probsRF_repeat, Y_train)
-    #fRNN, tRNN, aRNN=ml_algorithms.roc(probsRNN, Y_test)
-    #fRNN_repeat, tRNN_repeat, aRNN_repeat=ml_algorithms.roc(probsRNN_repeat, Y_train)
     fBoost, tBoost, aBoost=ml_algorithms.roc(probsBoost, Y_test)
     fBoost_repeat, tBoost_repeat, aBoost_repeat=ml_algorithms.roc(probsBoost_repeat, Y_train)
     fRBF, tRBF, aRBF=ml_algorithms.roc(probsRBF, Y_test)
@@ -385,7 +362,6 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     aNB_mean = (aNB+aNB_repeat)/2.0
     aKNN_mean = (aKNN+aKNN_repeat)/2.0
     aRF_mean = (aRF+aRF_repeat)/2.0
-    #aRNN_mean = (aRNN+aRNN_repeat)/2.0
     aBoost_mean = (aBoost+aBoost_repeat)/2.0
     aRBF_mean = (aRBF+aRBF_repeat)/2.0
     aANN_mean = (aANN+aANN_repeat)/2.0
@@ -398,8 +374,6 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     F1_scoreKNN_repeat, F1_thresholdKNN_repeat = ml_algorithms.F1(probsKNN_repeat, Y_train)
     F1_scoreRF,  F1_thresholdRF = ml_algorithms.F1(probsRF, Y_test)
     F1_scoreRF_repeat,  F1_thresholdRF_repeat = ml_algorithms.F1(probsRF_repeat, Y_train)
-    #F1_scoreRNN = ml_algorithms.F1(probsRNN, Y_test)
-    #F1_scoreRNN_repeat = ml_algorithms.F1(probsRNN_repeat, Y_train)
     F1_scoreBoost,  F1_thresholdBoost = ml_algorithms.F1(probsBoost, Y_test)
     F1_scoreBoost_repeat,  F1_thresholdBoost_repeat = ml_algorithms.F1(probsBoost_repeat, Y_train)
     F1_scoreRBF, F1_thresholdRBF = ml_algorithms.F1(probsRBF, Y_test)
@@ -412,7 +386,6 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     F1_scoreNB_mean = 0.5*(F1_scoreNB+F1_scoreNB_repeat)
     F1_scoreKNN_mean = 0.5*(F1_scoreKNN+F1_scoreKNN_repeat)
     F1_scoreRF_mean = 0.5*(F1_scoreRF+F1_scoreRF_repeat)
-    #F1_scoreRNN_mean = 0.5*(F1_scoreRNN+F1_scoreRNN_repeat)
     F1_scoreBoost_mean = 0.5*(F1_scoreBoost+F1_scoreBoost_repeat)
     F1_scoreRBF_mean = 0.5*(F1_scoreRBF+F1_scoreRBF_repeat)
     F1_scoreANN_mean = 0.5*(F1_scoreANN+F1_scoreANN_repeat)
@@ -425,8 +398,6 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     FoMKNN_repeat, FoM_thresholdKNN_repeat = ml_algorithms.FoM(probsKNN_repeat, Y_train)
     FoMRF, FoM_thresholdRF = ml_algorithms.FoM(probsRF, Y_test)
     FoMRF_repeat, FoM_thresholdRF_repeat = ml_algorithms.FoM(probsRF_repeat, Y_train)
-    #FoMRNN = ml_algorithms.FoM(probsRNN,Y_test)
-    #FoMRNN_repeat = ml_algorithms.FoM(probsRNN_repeat,Y_train)
     FoMBoost, FoM_thresholdBoost = ml_algorithms.FoM(probsBoost, Y_test)
     FoMBoost_repeat, FoM_thresholdBoost_repeat = ml_algorithms.FoM(probsBoost_repeat, Y_train)
     FoMRBF, FoM_thresholdRBF = ml_algorithms.FoM(probsRBF, Y_test)
@@ -439,16 +410,12 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     FoMNB_mean = 0.5*(FoMNB+FoMNB_repeat)
     FoMKNN_mean = 0.5*(FoMKNN+FoMKNN_repeat)
     FoMRF_mean = 0.5*(FoMRF+FoMRF_repeat)
-    #FoMRNN_mean = 0.5*(FoMRNN+FoMRNN_repeat)
     FoMBoost_mean = 0.5*(FoMBoost+FoMBoost_repeat)
     FoMRBF_mean = 0.5*(FoMRBF+FoMRBF_repeat)
     FoMANN_mean = 0.5*(FoMANN+FoMANN_repeat)
     FoMMCS_mean = 0.5*(FoMMCS+FoMMCS_repeat)
     
-    #alt_FoMRF = ml_algorithms.alternative_FoM(probsRF, Y_test)
-    #print('Alternative RF FoM is: %s' %(alt_FoMRF))
-    
-    #Collate all results into a results array. Columns are AUC, F1, FoM, rows are classifiers
+    #Collate all results into a results array
     results = np.array([[aRBF_mean, F1_scoreRBF_mean, FoMRBF_mean], 
                                    [aNB_mean, F1_scoreNB_mean, FoMNB_mean], 
                                    [aKNN_mean, F1_scoreKNN_mean, FoMKNN_mean], 
@@ -465,24 +432,21 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
                                         [F1_thresholdANN, FoM_thresholdANN], 
                                         [F1_thresholdMCS, FoM_thresholdMCS]])
     
-    """
+    #Print best performance criteria for each classifier  
     print
     print 'AUC, F1, FoM:'
     print 'RBF SVM',  results[0, 0],  results[0, 1],  results[0, 2]
     print 'Bayes', results[1, 0],  results[1, 1], results[1, 2]
     print 'KNN', results[2, 0],  results[2, 1],  results[2, 2]
     print 'Random forest', results[3, 0],  results[3, 1],  results[3, 2]
-    #print 'RNN',  aRNN, F1_scoreRNN_mean, FoMRNN_mean
     print 'AdaBoost forest',  results[4, 0],  results[4, 1],  results[4, 2]
     print 'ANN',  results[5, 0], results[5, 1],  results[5, 2]
     print 'MCS',  results[6, 0], results[6, 1], results[6, 2]
     print
-    """
     
-    #Plot ROC curve
-    #plot_ROC(fRBF, tRBF, fNB, tNB, fKNN, tKNN, fRF, tRF, fBoost, tBoost, fANN, tANN, fMCS, tMCS, aRBF_mean, 
-    #         aNB_mean, aKNN_mean, aRF_mean, aBoost_mean, aANN_mean, aMCS_mean)
-    
+    #Plot ROC curve comparing all classifiers
+    plot_ROC(fRBF, tRBF, fNB, tNB, fKNN, tKNN, fRF, tRF, fBoost, tBoost, fANN, tANN, fMCS, tMCS, aRBF_mean, 
+             aNB_mean, aKNN_mean, aRF_mean, aBoost_mean, aANN_mean, aMCS_mean)
     
     return results, thresholds
     
@@ -493,6 +457,19 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
 #i.e. the threshold =0.5 point
 def plot_ROC(fRBF, tRBF, fNB, tNB, fKNN, tKNN, fRF, tRF, fBoost, tBoost, fANN, tANN, fMCS, tMCS, aRBF_mean, 
              aNB_mean, aKNN_mean, aRF_mean, aBoost_mean, aANN_mean, aMCS_mean):
+    """
+    Plot ROC curves comparing the performance of all the classifiers.
+    
+    INPUTS:
+    fX - An array of the false positive rate for classifier X, of size (N_threshold_increments,)
+    tX - An array of the true positive rate for classifier X, of size (N_threshold_increments,)
+    aX_mean - The mean ROC AUC value for classifier X
+    
+    OUTPUTS:
+    - A plot of the ROC curves is shown, and the script pauses until the plot window is closed
+    
+    """
+    
     #Create figure for ROC curve
     figure(figsize=(10, 10))
 
@@ -502,7 +479,6 @@ def plot_ROC(fRBF, tRBF, fNB, tNB, fKNN, tKNN, fRF, tRF, fBoost, tBoost, fANN, t
     CRF='#008c48' #purple
     CMCS ='#e74c3c' #red
     CBoost ='#fd85ec' #pink
-    #CRNN ='#a27e2c' #brown
     CRBF ='#40e0d0' #cyan
     
     linew=2.5
@@ -512,22 +488,21 @@ def plot_ROC(fRBF, tRBF, fNB, tNB, fKNN, tKNN, fRF, tRF, fBoost, tBoost, fANN, t
     plot(fNB, tNB, CNB, lw=linew)
     plot(fKNN, tKNN, CKNN, lw=linew)
     plot(fRF, tRF, CRF, lw=linew)
-    #plot(fRNN, tRNN, CRNN, lw=linew)
     plot(fBoost, tBoost, CBoost, lw=linew)
     plot(fANN, tANN, CANN, lw=linew)
     plot(fMCS, tMCS, CMCS, lw=linew)
     
-    #plot the threshold = 0.5 point
+    #plot the RF threshold = 0.5 point
     midX = int(round(fRF.shape[0]/2.0))
     midY = int(round(tRF.shape[0]/2.0))
     scatter(fRF[midX], tRF[midY], s=200, c='#000000')
-
     
     #Set plot parameters
     ax=gca()
     ax.set_aspect(1.0)
     setup_plot(ax)
     
+    #Create legend
     legend(('RBF SVM (%.3f)' %(aRBF_mean),  'Naive Bayes (%.3f)' %(aNB_mean), 'KNN (%.3f)' %(aKNN_mean), 
     'Random Forest (%.3f)' %(aRF_mean), 'Ada Forest (%.3f)' %(aBoost_mean), 'ANN (%.3f)' %(aANN_mean), 
     'MCS (%.3f)' %(aMCS_mean)),  loc='lower right',  frameon=True, bbox_to_anchor=(0.95, 0.05), fontsize=18)
@@ -589,12 +564,30 @@ def split_data(X, Y, size, bias):
     
     
 def frequency_probabilities(X_train, Y_train, X_test, X_test_err, classifier, *params):
-        
+    """
+    A frequentist measure of the probability of each testing set member being Ia is calculated.
+    This is done by taking a given testing set data point then producing many more data points
+    surrounding it by perturbing its feature values (using a normal distribution with std equal to 
+    the errors on each feature). This perturbed data is then classified, and the proportion 
+    classified as Ia is taken as the probability of the original data point being Ia.
+    
+    INPUTS:
+    X_train - An array containing the features of the training set, of size (N_samples, N_features)
+    Y_train - An array containing the classes of the training set, of size (N_samples,)
+    X_test - An array containing the features of the testing set, of size (N_samples, N_features)
+    X_test_err - An array containing the errors on each feature in the testing set, of size (N_samples, N_features)
+    classifier - The classification function (e.g. ml_algorithms.Bayes)
+    *params - The parameters required by classifier. (e.g. the number of trees for ml_algorithms.Forest)
+    
+    OUTPUTS:
+    freq_probs - An array containing the frequentist probabilities of each member of the testing set
+                        being Ia, of size (N_samples,)
+    """
+    
     #Create perturbations about each data point in Y_test
     N_pert = 100
     N_classes = len(np.unique(Y_train))
     N_features = X_test.shape[1]
-
     perturbations = -999*np.ones((X_test.shape[0], X_test.shape[1], N_pert))
     
     for counter in np.arange(N_pert):
@@ -602,6 +595,7 @@ def frequency_probabilities(X_train, Y_train, X_test, X_test_err, classifier, *p
 
     #Classify perturbed data
     pert_probs = np.zeros((perturbations.shape[0], N_classes, perturbations.shape[2])) 
+    pert_preds = np.zeros((pert_probs.shape[0], pert_probs.shape[2]))
 
     for counter in np.arange(perturbations.shape[0]):
         temp_data = perturbations[counter, :, :]
@@ -612,11 +606,19 @@ def frequency_probabilities(X_train, Y_train, X_test, X_test_err, classifier, *p
             temp_result = classifier(X_train, Y_train, temp_data, params[0], params[1])
         pert_probs[counter, :, :] = temp_result.T
     
-
+    #Convert from probability scores to class predictions
     #Note this defines 1A class as '0' regardless of whether input data is classed '1', '2', '3'
-    pert_preds = np.argmax(pert_probs, axis=1)
+    
+    #pert_preds = np.argmax(pert_probs, axis=1)
+    threshold = 0.7
+    for rows in arange(pert_probs.shape[0]):
+        for z in arange(pert_probs.shape[2]):
+            if pert_probs[rows, 0, z]>threshold:
+                pert_preds[rows, z] = 0
+            else:
+                pert_preds[rows, z] = 1
 
-    #Calculate probabilities of it being 1A
+    #Calculate probabilities of it being Ia
     freq_probs = (np.sum((pert_preds==0), axis=1)).astype(float)/pert_preds.shape[1]
     
     return freq_probs
@@ -624,6 +626,18 @@ def frequency_probabilities(X_train, Y_train, X_test, X_test_err, classifier, *p
     
     
 def scale_data_with_errors(X, X_err):
+    """
+    Scale all data to be distributed about mean = 0 with std = 1. Scale the feature errors by the 
+    same factor.
+    
+    INPUTS:
+    X - An array containing all the features, of size (N_samples, N_features)
+    X_err - An array containing the errors on each feature in X, of size (N_samples, N_features)
+    
+    OUTPUTS:
+    X_scaled - An array containing all scaled features, of size (N_samples, N_features)
+    X_err_scaled - An array containing all scaled errors, of size (N_samples, N_features)
+    """
     
     sigma = np.std(X, axis=0)
     mean = np.mean(X, axis=0)
@@ -638,17 +652,38 @@ def scale_data_with_errors(X, X_err):
     
     
 def make_a_fake_dataset():
+    """
+    Create a fake 2D data set with two distinct clouds of data corresponding
+    to 2 normally distributed classes. This is for testing the rest of the classification
+    pipeline.
+    
+    INPUTS:
+    none
+    
+    OUPUTS:
+    dataset - An array containing the fake features, of size (N_samples, 2)
+    err - An array containing errors on the features in dataset, of size (N_samples, 2)
+    classes - An array contianing the classes of each member of dataset, of size (N_samples,)
+    """
 
-    #Produce dataset
+    #Produce class distribution parameters
     means = np.array([[4., 4.], [0., 0.]])
     sigmas = np.array([[2.3, 2.1], [2.4, 1.9]])
 
+    #Produce the feature sets
     features11 = sigmas[0, 0]*np.random.randn(100) + means[0, 0]
     features12 = sigmas[0, 1]*np.random.randn(100) + means[0, 1]
     features21 = sigmas[1, 0]*np.random.randn(100) + means[1, 0]
     features22 = sigmas[1, 1]*np.random.randn(100) + means[1, 1]
+    
+    weight = 0.1
+    errors11 = weight*sigmas[0, 0]*np.random.randn(100)+sigmas[0, 0]
+    errors12 = weight*sigmas[0, 1]*np.random.randn(100)+sigmas[0, 1]
+    errors21 = weight*sigmas[1, 0]*np.random.randn(100)+sigmas[1, 0]
+    errors22 = weight*sigmas[1, 1]*np.random.randn(100)+sigmas[1, 1]
 
     dataset = np.zeros((200, 2))
+    err = np.zeros((200, 2))
     classes = np.zeros(200)
 
     dataset[:100, 0] = features11
@@ -658,13 +693,84 @@ def make_a_fake_dataset():
     classes[100:] = np.ones(100)
     classes = classes + 1
     
-    err = np.random.randn(dataset.shape[0], dataset.shape[1])
+    err[:100, 0] = errors11
+    err[:100, 1] = errors12
+    err[100:, 0] = errors21
+    err[100:, 1] = errors22
     
+    #Produce the errors
+    #err = np.random.randn(dataset.shape[0], dataset.shape[1])
     
     return dataset, err, classes
     
     
+def misclassifications(probs, X_test, Y_test):
+    """
+    Make a record of the confusion matrix values for a given classifiers probability 
+    scores. 
     
+    INPUTS:
+    probs - An array containing the probability scores for each member of the testing
+                set, of size (N_samples,)
+    X_test - An array containing the features of the testing set, of size (N_samples, N_features)
+    Y_test - An array containing the classes of the testing set, of size (N_samples,)
+    
+    OUTPUTS:
+    FP - The number of false positives
+    FN - The number of false negatives
+    TP - The number of true positives
+    TN - The number of true negatives
+    """
+    
+    #Convert from probabilities to class predictions (+1 to shift the predicted
+    #class labels from 0, 1, 2 to 1, 2, 3)
+    preds = argmax(probs, axis=1) + 1
+    
+    FP_indices = (preds == 1) & (Y_test != 1)
+    FN_indices = (preds != 1) & (Y_test == 1)
+    TP_indices = (preds == 1) & (Y_test == 1)
+    TN_indices = (preds != 1) & (Y_test != 1)
+    
+    #plot_histograms(X_test, FP_indices, TP_indices)
+    
+    FP = X_test[FP_indices, :]
+    FN = X_test[FN_indices, :]
+    TP = X_test[TP_indices, :]
+    TN = X_test[TN_indices, :]
+    
+    return FP, FN, TP, TN
+
+
+
+def plot_histograms(X_test, indices1, indices2):
+    """
+    Plot a histogram of the distribution of chosen_feature for two sets of sample 
+    indices (e.g. the lists of false positives and true positives).
+    
+    INPUTS:
+    X_test - An array containing the features of the testing set, of size (N_samples, N_features)
+    indices1 - An array of indices, of size (N_samples,)
+    indices2 - An array of indices, of size (N_samples,)
+    
+    OUTPUTS:
+    - A histogram is displayed. Note the script pauses until this plot window is closed
+    """
+    chosen_feature = 3
+    hist1, bins1 = np.histogram(X_test[indices1, chosen_feature])
+    hist1 = hist1.astype(float)/(np.amax(hist1))
+    width1 = 0.7*(bins1[1]-bins1[0])
+    centre1 = (bins1[:-1]+bins1[1:])/2
+    my_hist1 = plt.bar(centre1, hist1, align='center', width=width1)
+
+    show
+
+    hist2, bins2 = np.histogram(X_test[indices2, chosen_feature])
+    hist2 = hist2.astype(float)/(np.amax(hist2))
+    width2 = 0.7*(bins2[1]-bins2[0])
+    centre2 = (bins2[:-1]+bins2[1:])/2
+    my_hist2 = plt.bar(centre2, hist2, align='center', width=width2, color='r')
+
+    show
     
     
     

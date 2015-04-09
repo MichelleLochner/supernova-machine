@@ -4,6 +4,20 @@ import time
 
 
 def KNN_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
+    """
+    Implements a grid search parameter optimisation of the KNN classifier with respect
+    to ROC AUC.
+    
+    INPUTS:
+    X_train - An array containing the features of the training set, of size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training set, of size (N_samples,)
+    X_test - An array containing the features of the testing set, of size (N_samples, N_features)
+    Y_test - An array containing the class labels of the testing set, of size (N_samples,)
+    param_dict - A dictionary containing the parameter values to be searched over
+    
+    OUTPUTS:
+    best_params - A dictionary containing the optimum parameter values
+    """
     
     start = time.time()
     
@@ -35,6 +49,20 @@ def KNN_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     
     
 def RF_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
+    """
+    Implements a grid search parameter optimisation of the RF classifier with respect to 
+    ROC AUC.
+    
+    INPUTS:
+    X_train - An array containing the features of the training set, of size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training set, of size (N_samples,)
+    X_test - An array containing the features of the testing set, of size (N_samples, N_features)
+    Y_test - An array containing the class labels of the testing set, of size (N_samples,)
+    param_dict - A dictionary containing the parameter values to be searched over
+    
+    OUTPUTS:
+    best_params - A dictionary containing the optimum parameter values
+    """
     
     start = time.time()
     
@@ -64,6 +92,20 @@ def RF_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     
     
 def Boost_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
+    """
+    Implements a grid search parameter optimisation of the Boost classifier with respect to 
+    ROC AUC.
+    
+    INPUTS:
+    X_train - An array containing the features of the training set, of size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training set, of size (N_samples,)
+    X_test - An array containing the features of the testing set, of size (N_samples, N_features)
+    Y_test - An array containing the class labels of the testing set, of size (N_samples,)
+    param_dict - A dictionary containing the parameter values to be searched over
+    
+    OUTPUTS:
+    best_params - A dictionary containing the optimum parameter values
+    """
     
     start = time.time()
     
@@ -93,6 +135,20 @@ def Boost_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
 
 
 def RBF_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
+    """
+    Implements a grid search parameter optimisation of the SVM classifier with RBF kernel
+    with respect to ROC AUC.
+    
+    INPUTS:
+    X_train - An array containing the features of the training set, of size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training set, of size (N_samples,)
+    X_test - An array containing the features of the testing set, of size (N_samples, N_features)
+    Y_test - An array containing the class labels of the testing set, of size (N_samples,)
+    param_dict - A dictionary containing the parameter values to be searched over
+    
+    OUTPUTS:
+    best_params - A dictionary containing the optimum parameter values
+    """
     
     start = time.time()
     

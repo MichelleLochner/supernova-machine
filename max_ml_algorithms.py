@@ -17,13 +17,29 @@ from pybrain.supervised.trainers import BackpropTrainer
 
 #Make a roc curve to evaluate a classification routine
 def roc(pr, Yt):
+    """
+    Produce the false positive rate and true positive rate required to plot
+    a ROC curve, and the area under that curve.
+    
+    INPUTS:
+    pr - An array of probability scores, of size (N_samples,)
+    Yt - An array of class labels, of size (N_samples,)
+    
+    OUTPUTS:
+    fpr - An array containing the false positive rate at each probability threshold
+    tpr - An array containing the true positive rate at each probability threshold
+    auc - The area under the ROC curve
+    """
+    
     probs=pr.copy()
     Y_test=Yt.copy()
     Y_test = Y_test.squeeze()
+    
     if len(shape(pr))>1:
         probs_1=probs[:, 0]
     else:
         probs_1=probs
+    
     threshold=linspace(0., 1., 500) #500 evenly spaced numbers between 0,1
     tpr=[0]*len(threshold)
     fpr=[0]*len(threshold)
@@ -51,8 +67,23 @@ def roc(pr, Yt):
     return fpr, tpr, auc
     
     
-#Calculate an F1 statistic
 def F1(pr,  Yt):
+    """
+    Calculate an F1 score for many probability threshold increments 
+    and select the best one. 
+    
+    F1 is defined as:
+    F1 = 2*TP/(2*TP+FP+FN)
+    
+    INPUTS:
+    pr - An array containing probability scores, of size (N_samples,)
+    Yt - An array containing class labels, of size (N_samples,)
+    
+    OUTPUTS:
+    best_F1 - The largest F1 value
+    best_threshold - The probability threshold corresponding to best_F1
+    """
+    
     probs = pr.copy()
     Y_test = Yt.copy()
     
@@ -79,12 +110,27 @@ def F1(pr,  Yt):
     best_F1 = np.amax(F1)
     best_threshold_index = np.argmax(F1)
     best_threshold = threshold[best_threshold_index]
-    #print("Best F1 threshold is: %s" %(best_threshold))
     
     return best_F1, best_threshold
 
-#Calculate a Kessler FoM statistic
 def FoM(pr,  Yt):
+    """
+    Calculate a Kessler FoM for many probability threshold increments
+    and select the largest one.
+    
+    FoM is defined as:
+    FoM = TP^2/((TP+FN)(TP+3*FP))
+    
+    INPUTS:
+    pr - An array of probability scores, of size (N_samples,)
+    Yt - An array of class labels, of size (N_samples,)
+    
+    OUTPUTS:
+    best_FoM - The largest FoM value
+    best_threshold - The probability threshold corresponding
+                                to best_FoM
+    """
+    
     probs = pr.copy()
     Y_test = Yt.copy()
     
@@ -116,87 +162,150 @@ def FoM(pr,  Yt):
     best_FoM = np.amax(FoM)
     best_threshold_index = np.argmax(FoM)
     best_threshold = threshold[best_threshold_index]
-    #print("Best FoM threshold is: %s" %(best_threshold))
     
     return best_FoM, best_threshold
 
+
 #Calculate FoM by requiring a positive to have P[0] greater than a threshold 
 #and be the largest class probability.
-def alternative_FoM(probs, Y_test):
-    max_probs = np.argmax(probs, axis=1)
-    preds = (max_probs==0) & (probs[:, 0]>0.0)
+#def alternative_FoM(probs, Y_test):
+#    max_probs = np.argmax(probs, axis=1)
+#    preds = (max_probs==0) & (probs[:, 0]>0.0)
     
-    TP_list = (preds == True) & (Y_test == 1)
-    FP_list = (preds == True) & (Y_test != 1)
-    TN_list = (preds == False) & (Y_test !=1)
-    FN_list = (preds == False) & (Y_test == 1)
+#    TP_list = (preds == True) & (Y_test == 1)
+#    FP_list = (preds == True) & (Y_test != 1)
+#    TN_list = (preds == False) & (Y_test !=1)
+#    FN_list = (preds == False) & (Y_test == 1)
     
-    TP = sum(TP_list)
-    FP = sum(FP_list)
-    TN = sum(TN_list)
-    FN = sum(FN_list)
+#    TP = sum(TP_list)
+#    FP = sum(FP_list)
+#    TN = sum(TN_list)
+#    FN = sum(FN_list)
     
-    weight = 3.0
+#    weight = 3.0
     
-    print("alternative TP is: %s" %(TP))
-    print("alternative FP is: %s" %(FP))
-    print("alternative TN is: %s" %(TN))
-    print("alternative FN is: %s" %(FN))
+#    print("alternative TP is: %s" %(TP))
+#    print("alternative FP is: %s" %(FP))
+#    print("alternative TN is: %s" %(TN))
+#    print("alternative FN is: %s" %(FN))
     
-    efficiency = float(TP)/(TP+FN)
-    purity = float(TP)/(TP+weight*FP)
-    FoM = efficiency*purity
+#    efficiency = float(TP)/(TP+FN)
+#    purity = float(TP)/(TP+weight*FP)
+#    FoM = efficiency*purity
     
-    return FoM
+#    return FoM
 
-#SVM using the SVC routine 
+
+
 def support_vm(X_train, Y_train, X_test, *args):
+    """
+    Implements a linear Support Vector Machine classifier.
+    
+    INPUTS:
+    X_train - An array containing the features of the training
+                set, of size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training
+                set, of size (N_samples,)
+    X_test - An array containing the features of the testing
+                set, of size (N_samples,)
+    
+    OUTPUTS:
+    probs - An array containing the probabilities for each class
+                for each member of the testing set, of size 
+                (N_samples, N_classes)
+    """
     
     a=time.time()
     
+    #Create the SVM
     clf=svm.SVC(kernel='linear', probability=True)
     
+    #Train the SVM and use it to classify the testing set
     f=clf.fit(X_train, Y_train)
-    probs= clf.predict_proba(X_test)
+    probs=clf.predict_proba(X_test)
     
     return probs
 
 
-
-#SVM using the SVC routine with cubic kernel
 def support_vm3(X_train, Y_train, X_test, Y_test, ):
+    """
+    Implements a Support Vector Machine classifier with cubic kernel.
+    
+    INPUTS:
+    X_train - An array containing the features of the training set, of 
+                size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training set, 
+                of size (N_samples,)
+    X_test - An array containing the features of the testing set, of
+                size (N_samples, N_features)
+    Y_test - An array containing the class labels of the testing set, of
+                size (N_samples,)
+    
+    OUTPUTS:
+    probs - An array containing the probabilies for each class for each 
+                member of the testing set, of size (N_samples, N_classes)
+    """
+    
     a=time.time()
-    svr=svm.SVC(kernel='poly', degree = 3, probability=True)
-    clf=svr
-    print 'fitting now'
-    f=clf.fit(X_train, Y_train)
-    preds=clf.predict(X_test)
-    probs= clf.predict_proba(X_test)
-    print
-    print 'Support vector machine'
-    print 'Time taken', time.time()-a, 's'
-    print 'Accuracy', sum(preds==Y_test)/(float)(len(preds))
-    mismatched=preds[preds!=Y_test]
     
-    print 'False Ia detection',  sum(mismatched==1)/(float)(sum(preds==1))
-
+    #Create the classifier
+    clf=svm.SVC(kernel='poly', degree = 3, probability=True)
+ 
+    #Train the classifier, and use it to classify the testing set
+    f=clf.fit(X_train, Y_train)
+    probs= clf.predict_proba(X_test)
+ 
     return probs
 
-
-#SVM using the SVC routine with radial basis function kernel
 def support_vmRBF(X_train, Y_train, X_test, *args):
+    """
+    Implements a Support Vector Machine classifier with radial basis function kernel. The 
+    kernel function is defined as:
+    
+    K = exp(-gamma*|x-x'|^2)
+    
+    INPUTS:
+    X_train - An array containing the features of the training set, of size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training set, of size (N_samples,)
+    X_test - An array containing the features of the testing set, of size (N_samples, N_features)
+    *args - The parameters taken by the SVM. C is the cost of misclassification, gamma is a 
+                parameter of the kernel.
+    
+    OUTPUTS:
+    probs - An array containing the probabilities for each class for each member of the 
+                testing set, of size (N_samples, N_classes)
+    """
 
+    #Create the classifier
     clf=svm.SVC(kernel='rbf', probability = True, C = args[0], gamma = args[1])
+    
+    #Train the classifier, and use it to classify the testing set
     f=clf.fit(X_train, Y_train)
     probs= clf.predict_proba(X_test)
 
     return probs
     
     
-#A bagged RF 
 def forest(X_train, Y_train, X_test, *args):
+    """
+    Implements a Bagged Random Forest of Decision Trees.
+    
+    INPUTS:
+    X_train - An array containing the features of the training set, of size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training set, of size (N_samples,)
+    X_test - An array containing the features of the test set, of size (N_samples, N_features)
+    *args - The parameters of the classifier. n_estimators is the number of trees in the forest
+                and criterion is whether data splits at each tree node are done to extremize 
+                information entropy or the gini score.
 
+    OUTPUTS:
+    probs - An array containing the probabilites for each class for each member of the testing
+                set, of size (N_samples, N_classes)
+    """
+    #Create the classifier
     clf = RandomForestClassifier(n_estimators = args[0], criterion=args[1]) 
+    
+    #Train the classifier, and use it to classify the testing set
     clf.fit(X_train, Y_train)
     probs=clf.predict_proba(X_test)
 
@@ -204,10 +313,27 @@ def forest(X_train, Y_train, X_test, *args):
 
 
 
-#A boosted RF
 def boost_RF(X_train, Y_train, X_test, *args):
+    """
+    Implements a boosted ensemble of the base_estimator.
     
+    INPUTS:
+    X_train - An array containing the features of the training set, of size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training set, of size (N_samples,)
+    X_test - An array containing the features of the testing set, of size (N_samples, N_features)
+    *args - The parameters of the classifier. base_estimator is either a decision tree or a bagged
+                random forest of decision trees, n_estimators is the number of these estimators in the
+                ensemble.
+    
+    OUTPUTS:
+    probs - An array containing the probabilities for each class for each member of the testing set,
+                of size (N_samples, N_classes)
+    """
+    
+    #Create the classifier
     classifier = AdaBoostClassifier(base_estimator = args[0], n_estimators = args[1])
+    
+    #Train the classifier, and use it to classify the testing set
     classifier.fit(X_train, Y_train)
     probs=classifier.predict_proba(X_test)    
     
@@ -215,11 +341,27 @@ def boost_RF(X_train, Y_train, X_test, *args):
 
 
     
-
-#KNN classifier with weights going as 1/r
 def nearest_neighbours(X_train, Y_train, X_test, *args):
-
+    """
+    Implements a K-nearest neighbours classifier.
+    
+    INPUTS:
+    X_train - An array containing the features of the training set, of size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training set, of size (N_samples,)
+    X_test - An array containing the features of the testing set, of size (N_samples, N_features)
+    *args - The parameters of the KNN. n_neighbours is the number of neighbours used to classify
+                new data points (AKA K), and weights is how those neighbours are weighted (e.g. their
+                contribution is ~1/r)
+    
+    OUTPUTS:
+    probs - An array containing the probabilities for each class for each member of the testing set, 
+                of size (N_samples, N_classes)
+    """
+    
+    #Create the classifier
     clf=neighbors.KNeighborsClassifier(n_neighbors = args[0], weights = args[1])
+    
+    #Train the classifier, and use it to classify the testing set
     clf.fit(X_train, Y_train)
     probs=clf.predict_proba(X_test)
     
@@ -228,6 +370,7 @@ def nearest_neighbours(X_train, Y_train, X_test, *args):
 
 
 #RNN classifier with weights going as 1/r
+#CURRENTLY NOT USED
 def radius_neighbours(X_train, Y_train, X_test, Y_test):
     
     try:
@@ -254,10 +397,26 @@ def radius_neighbours(X_train, Y_train, X_test, Y_test):
     return probs
 
 
-#Naive Bayes classifier 
-def bayes(X_train, Y_train, X_test, *args):
 
+def bayes(X_train, Y_train, X_test, *args):
+    """
+    Implements a Naive Bayes classifier.
+    
+    INPUTS:
+    X_train - An array containing the features of the training set, of size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training set, of size (N_samples,)
+    X_test - An array containing the features of the testing set, of size (N_samples, N_features)
+    *args - Currently not used as Naive Bayes has no parameters to optimise
+    
+    OUTPUTS:
+    probs - An array containing the probabilities for each class for each member of the testing
+                set, of size (N_samples, N_classes)
+    """
+
+    #Create the classifier
     clf = GaussianNB()
+    
+    #Train the classifier, and use it to classify the testing set
     f=clf.fit(X_train, Y_train)    
     probs=clf.predict_proba(X_test)
 
@@ -267,6 +426,23 @@ def bayes(X_train, Y_train, X_test, *args):
     
 #ANN classifier
 def ANN(X_train, Y_train, X_test, Y_test, *args):
+    """
+    An Artificial Neural Network, based on the python library pybrain. In the future this function
+    should be modified to use the SkyNet ANN code instead.
+    
+    INPUTS:
+    X_train - An array containing the features of the training set, of size (N_samples, N_features)
+    Y_train - An array containing the class labels of the training set, of size (N_samples,)
+    X_test - An array containing the features of the testeing set, of size (N_samples, N_features)
+    Y_test - An array containing the class labels of the testing set, of size (N_samples)
+    *args - Currently unused. In the future could specify the network architecture and activation
+                functions at each node.
+    
+    OUTPUTS:
+    probs - an array containing the probabilities for each class for each member of the testing set,
+                of size (N_samples, N_classes)
+    """
+    
     Y_train_copy = Y_train.copy()
     Y_test_copy = Y_test.copy()
 
@@ -292,7 +468,7 @@ def ANN(X_train, Y_train, X_test, Y_test, *args):
     testdata.setField('target', Y_test_copy)
     testdata._convertToOneOfMany()
 
-    #Create ANN with n_features inputs, n_classes outputs and HL_size nodes in hidden layer
+    #Create ANN with n_features inputs, n_classes outputs and HL_size nodes in hidden layers
     N = pb.FeedForwardNetwork()
     HL_size1 = X_train.shape[1]*2+2
     HL_size2 = X_train.shape[1]*2+2
@@ -326,7 +502,6 @@ def ANN(X_train, Y_train, X_test, Y_test, *args):
         trainer.train()
 
     #Run the network on testing data
-    #Get raw output scores for a given input
     probs = N.activate(X_test[0, :])
     probs = np.expand_dims(probs, axis=0)
 
@@ -340,6 +515,20 @@ def ANN(X_train, Y_train, X_test, Y_test, *args):
     
     
 def MCSprobs(probs1, probs2, probs3):
+    """
+    Implements a mulitple classifier system (MCS). This takes the average probability
+    score over 3 independent classification algorithms' probabilities.
+    
+    INPUTS:
+    probsX - An array of probability scores from classifier X, of size (N_samples, N_classes)
+    
+    OUTPUTS:
+    mean_probs - An array containing the average probability scores, of size (N_samples, N_classes)
+    indices - An array containing the row values of members of the testing set where at least 
+                two of the classifiers disagree.
+    """
+    
+    #Average the probability scores
     mean_probs = (probs1+probs2+probs3)/3.0
     
     #Find examples where classifiers disagree
@@ -352,6 +541,7 @@ def MCSprobs(probs1, probs2, probs3):
     
     return mean_probs,  indices
     
+#CURRENTLY NOT IN USE
 def MCSpreds(probs1, probs2, probs3, probs4):
     preds1 = np.argmax(probs1, axis=1)
     preds2 = np.argmax(probs2, axis=1)
@@ -367,7 +557,7 @@ def MCSpreds(probs1, probs2, probs3, probs4):
     return mode_preds
     
     
-"""
+#CURRENTLY NOT IN USE
 def SkyNet_wrapper(X_train, Y_train, X_test, params, *args):
     
     #Write training and testing data to files
@@ -436,7 +626,7 @@ def SkyNet_wrapper(X_train, Y_train, X_test, params, *args):
     param_file.write('#output_root \n')
     param_file.write(params['output_filepath']) #Must be in the form /file/path/namestem
     param_file.write('#nhid \n')
-    param_file.write(params[])
+
     
     #Run SkyNet
     
@@ -445,7 +635,7 @@ def SkyNet_wrapper(X_train, Y_train, X_test, params, *args):
     
     return probs
 
-"""
+
     
     
     
