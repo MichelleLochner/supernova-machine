@@ -28,14 +28,17 @@ f = np.array(feats[:, [4, 6, 7, 8]], dtype='float')
 err = np.array(feats[:, [9, 11, 12, 13]], dtype='float')
 types = np.array(feats[:, 1], dtype='int')
 
-#To use fake features with known distribution for testing, uncomment next line
-f, err, types = tools.make_a_fake_dataset()
+#To use fake features with known distribution for testing, uncomment the following line.
+#Note that for the uniform distribution, comment out data scaling too.
+#f, err, types = tools.make_a_fake_dataset()
+#f, err, types = tools.make_a_uniform_dataset()
 
 X=f[types!=-9, :]
 Y=types[types!=-9]
 X_err = err[types!=-9, :]
 
 X_scaled, X_err_scaled = tools.scale_data_with_errors(X, X_err)
+#X_scaled,  X_err_scaled = X, X_err
 
 #Combine features and errors for ease of splitting into train and test sets
 X_combined = np.concatenate((X_scaled, X_err_scaled), axis=1)

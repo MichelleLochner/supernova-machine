@@ -20,11 +20,18 @@ def KNN_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     """
     
     start = time.time()
+
+    #Add edge elements to parameter grid
+    lower_edge = int(round(param_dict['n_neighbors'][0]*0.9))
+    upper_edge = int(round(param_dict['n_neighbors'][-1]*1.1))
+    param_dict['n_neighbors'].insert(0,lower_edge)
+    param_dict['n_neighbors'].append(upper_edge)
+
     
     row_counter = 0
     col_counter = 0
     auc_scores = np.zeros((len(param_dict['n_neighbors']), len(param_dict['weights'])))
-    
+
     for N_counter in param_dict['n_neighbors']:
         for W_counter in param_dict['weights']:
             
@@ -35,8 +42,16 @@ def KNN_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
         
         col_counter = 0
         row_counter += 1
-    
+
     K_index, W_index = np.unravel_index(np.argmax(auc_scores), auc_scores.shape)
+
+    #Check if K_index is lower_edge or upper_edge
+    if param_dict['n_neighbors'][K_index]==lower_edge:
+        K_index += 1
+        print('Lower bound on KNN N_neighbor range may be too high \n')
+    if param_dict['n_neighbors'][K_index]==upper_edge:
+        K_index -= 1
+        print('Upper bound on KNN N_neighbor range may be too low \n')
     
     best_params = {'n_neighbors':param_dict['n_neighbors'][K_index], 'weights':param_dict['weights'][W_index]}
     
@@ -66,6 +81,12 @@ def RF_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     
     start = time.time()
     
+    #Add edge elements to parameter grid
+    lower_edge = int(round(param_dict['n_estimators'][0]*0.9))
+    upper_edge = int(round(param_dict['n_estimators'][-1]*1.1))
+    param_dict['n_estimators'].insert(0,lower_edge)
+    param_dict['n_estimators'].append(upper_edge)
+
     row_counter = 0
     col_counter = 0
     auc_scores = np.zeros((len(param_dict['n_estimators']), len(param_dict['criterion'])))
@@ -83,6 +104,14 @@ def RF_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     
     N_index, C_index = np.unravel_index(np.argmax(auc_scores), auc_scores.shape)
     
+    #Check if N_index is lower_edge or upper_edge
+    if param_dict['n_estimators'][N_index]==lower_edge:
+        N_index += 1
+        print('Lower bound on RF N_estimators range may be too high \n')
+    if param_dict['n_estimators'][N_index]==upper_edge:
+        N_index -= 1
+        print('Upper bound on RF N_estimators range may be too low \n')
+
     best_params = {'n_estimators':param_dict['n_estimators'][N_index], 'criterion':param_dict['criterion'][C_index]}
     
     print("RF optimisier time taken: %s" %(time.time()-start))
@@ -108,6 +137,12 @@ def Boost_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     """
     
     start = time.time()
+
+    #Add edge elements to parameter grid
+    lower_edge = int(round(param_dict['n_estimators'][0]*0.9))
+    upper_edge = int(round(param_dict['n_estimators'][-1]*1.1))
+    param_dict['n_estimators'].insert(0,lower_edge)
+    param_dict['n_estimators'].append(upper_edge)
     
     row_counter = 0
     col_counter = 0
@@ -126,6 +161,14 @@ def Boost_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     
     B_index, N_index = np.unravel_index(np.argmax(auc_scores), auc_scores.shape)
     
+    #Check if N_index is lower_edge or upper_edge
+    if param_dict['n_estimators'][N_index]==lower_edge:
+        N_index += 1
+        print('Lower bound on RF N_estimators range may be too high \n')
+    if param_dict['n_estimators'][N_index]==upper_edge:
+        N_index -= 1
+        print('Upper bound on RF N_estimators range may be too low \n')
+
     best_params = {'base_estimator':param_dict['base_estimator'][B_index], 'n_estimators':param_dict['n_estimators'][N_index]}
     
     print("AdaBoost optimiser time taken: %s" %(time.time()-start))
@@ -151,6 +194,16 @@ def RBF_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     """
     
     start = time.time()
+
+    #Add edge elements to parameter grid
+    lower_edge_C = param_dict['C'][0]*0.9
+    upper_edge_C = param_dict['C'][-1]*1.1
+    param_dict['C'].insert(0,lower_edge_C)
+    param_dict['C'].append(upper_edge_C)
+    lower_edge_g = param_dict['gamma'][0]*0.9
+    upper_edge_g = param_dict['gamma'][-1]*1.1
+    param_dict['gamma'].insert(0,lower_edge_g)
+    param_dict['gamma'].append(upper_edge_g)
     
     row_counter = 0
     col_counter = 0
@@ -169,6 +222,20 @@ def RBF_optimiser(X_train, Y_train, X_test, Y_test, param_dict):
     
     C_index, G_index = np.unravel_index(np.argmax(auc_scores), auc_scores.shape)
     
+    #Check if N_index is lower_edge or upper_edge
+    if param_dict['C'][C_index]==lower_edge_C:
+        C_index += 1
+        print('Lower bound on Boost C range may be too high \n')
+    if param_dict['C'][C_index]==upper_edge_C:
+        C_index -= 1
+        print('Upper bound on Boost C range may be too low \n')
+    if param_dict['gamma'][G_index]==lower_edge_g:
+        G_index += 1
+        print('Lower bound on Boost gamma range may be too high \n')
+    if param_dict['gamma'][G_index]==upper_edge_g:
+        G_index -= 1
+        print('Upper bound on Boost gamma range may be too low \n')
+
     best_params = {'C':param_dict['C'][C_index], 'gamma':param_dict['gamma'][G_index]}
     
     print("RBF SVM optimiser time taken: %s" %(time.time()-start))

@@ -288,7 +288,7 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     
     #make a record of the FP and FN from RF
     RF_FP, RF_FN,  RF_TP, RF_TN = misclassifications(probsRF, X_test, Y_test)
-    
+    """
     #Calculate frequency probabilities
     freq_probsNB = frequency_probabilities(X_train, Y_train, X_test, X_test_err, ml_algorithms.bayes, NB_params)
     freq_probsKNN = frequency_probabilities(X_train, Y_train, X_test, X_test_err, ml_algorithms.nearest_neighbours, 
@@ -305,43 +305,43 @@ def run_ml(X_train, Y_train, X_test, Y_test, X_train_err, X_test_err, **kwargs):
     plt.figure()    
     plt.scatter(freq_probsNB, probsNB[:, 0])
     plt.title('Naive Bayes - Fake Data')
-    plt.xlabel('Frequency Probabilities')
-    plt.ylabel('Probability Values')
-    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/NB_0.7.png', facecolor='white')
+    plt.xlabel('Real probabilities')
+    plt.ylabel('Frequency probabilities')
+    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/NB_RvsF.png', facecolor='white')
     plt.show()
     
     plt.figure()
     plt.scatter(freq_probsKNN, probsKNN[:, 0])
     plt.title('K Nearest Neighbours')
-    plt.xlabel('Frequency Probabilities')
-    plt.ylabel('Probability Values')
-    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/KNN_0.7.png', facecolor='white')
+    plt.xlabel('Real probabilities')
+    plt.ylabel('Frequency probabilities')
+    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/KNN_RvsF.png', facecolor='white')
     plt.show()
     
     plt.figure()
-    plt.scatter(freq_probsRF, probsRF[:, 0])
+    plt.scatter(freq_probsRF, probsRF[:,0])
     plt.title('Random Forest')
-    plt.xlabel('Frequency Probabilities')
-    plt.ylabel('Probability Values')
-    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/RF_0.7.png', facecolor='white')
+    plt.xlabel('Real probabilities')
+    plt.ylabel('Frequency probabilities')
+    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/RF_RvsF.png', facecolor='white')
     plt.show()
     
     plt.figure()
     plt.scatter(freq_probsBoost, probsBoost[:, 0])
     plt.title('AdaBoost Random Forest')
-    plt.xlabel('Frequency Probabilities')
-    plt.ylabel('Probability Values')
-    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/Boost_0.7.png', facecolor='white')
+    plt.xlabel('Real probabilities')
+    plt.ylabel('Frequency probabilities')
+    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/Boost_RvsF.png', facecolor='white')
     plt.show()
     
     plt.figure()
     plt.scatter(freq_probsRBF, probsRBF[:, 0])
     plt.title('Support Vector Machine with RBF Kernel')
     plt.xlabel('Frequency Probabilities')
-    plt.ylabel('Probability Values')
-    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/RBF_0.7.png', facecolor='white')
+    plt.ylabel('Frequency probabilities')
+    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/prob_experiments/RBF_RvsF.png', facecolor='white')
     plt.show()
-    
+    """
     #calculate ROC curve values
     fNB, tNB, aNB=ml_algorithms.roc(probsNB, Y_test)
     fNB_repeat, tNB_repeat, aNB_repeat=ml_algorithms.roc(probsNB_repeat, Y_train)
@@ -514,6 +514,7 @@ def plot_ROC(fRBF, tRBF, fNB, tNB, fKNN, tKNN, fRF, tRF, fBoost, tBoost, fANN, t
     ylim([0, 1])
     
     subplots_adjust(bottom=0.08,left=0.05, top=0.92, right=0.95)
+    plt.savefig('/export/zupcx26/visitor4/Spring_2015/For_Wiki/ROC.png')
     show()
     
 
@@ -667,42 +668,98 @@ def make_a_fake_dataset():
     """
 
     #Produce class distribution parameters
-    means = np.array([[4., 4.], [0., 0.]])
-    sigmas = np.array([[2.3, 2.1], [2.4, 1.9]])
+    means = np.array([[4., 4.], [0., 0.], [4.,0.]])
+    sigmas = np.array([[2.3, 2.1], [2.4, 1.9], [1.7, 2.2]])
 
     #Produce the feature sets
     features11 = sigmas[0, 0]*np.random.randn(100) + means[0, 0]
     features12 = sigmas[0, 1]*np.random.randn(100) + means[0, 1]
     features21 = sigmas[1, 0]*np.random.randn(100) + means[1, 0]
     features22 = sigmas[1, 1]*np.random.randn(100) + means[1, 1]
+    features31 = sigmas[2, 0]*np.random.randn(100) + means[2, 0]
+    features32 = sigmas[2, 1]*np.random.randn(100) + means[2, 1]
     
     weight = 0.1
     errors11 = weight*sigmas[0, 0]*np.random.randn(100)+sigmas[0, 0]
     errors12 = weight*sigmas[0, 1]*np.random.randn(100)+sigmas[0, 1]
     errors21 = weight*sigmas[1, 0]*np.random.randn(100)+sigmas[1, 0]
     errors22 = weight*sigmas[1, 1]*np.random.randn(100)+sigmas[1, 1]
+    errors31 = weight*sigmas[2, 0]*np.random.randn(100)+sigmas[2, 0]
+    errors32 = weight*sigmas[2, 1]*np.random.randn(100)+sigmas[2, 1]
 
-    dataset = np.zeros((200, 2))
-    err = np.zeros((200, 2))
-    classes = np.zeros(200)
+
+    dataset = np.zeros((300, 2))
+    err = np.zeros((300, 2))
+    classes = np.zeros(300)
 
     dataset[:100, 0] = features11
     dataset[:100, 1] = features12
-    dataset[100:, 0] = features21
-    dataset[100:, 1] = features22
-    classes[100:] = np.ones(100)
+    dataset[100:200, 0] = features21
+    dataset[100:200, 1] = features22
+    dataset[200:,0] = features31
+    dataset[200:,1] = features32
+    classes[100:200] = np.ones(100)
+    classes[200:] = 2*np.ones(100)
     classes = classes + 1
     
     err[:100, 0] = errors11
     err[:100, 1] = errors12
-    err[100:, 0] = errors21
-    err[100:, 1] = errors22
-    
-    #Produce the errors
-    #err = np.random.randn(dataset.shape[0], dataset.shape[1])
+    err[100:200, 0] = errors21
+    err[100:200, 1] = errors22
+    err[200:,0] = errors31
+    err[200:,1] = errors32
     
     return dataset, err, classes
     
+def make_a_uniform_dataset():
+    """
+    Create a fake 2D data set with a uniform random field of data, and classes determined
+    by a probability distribution that increases linearly with the 0th feature. This is for testing 
+    the rest of the classification pipeline.
+    
+    INPUTS:
+    none
+    
+    OUPUTS:
+    dataset - An array containing the fake features, of size (N_samples, 2)
+    err - An array containing errors on the features in dataset, of size (N_samples, 2)
+    classes - An array contianing the classes of each member of dataset, of size (N_samples,)
+    """
+
+    #Create uniformly distributed set of points
+    dataset = np.random.uniform(size=(300, 2))
+    
+    #Assign classes by a linearly increasing probability distribution
+    bins = np.arange(0, 1.01, 0.01)
+    thresholds = np.arange(0.01, 1.01, 0.01)
+    rand_numbers = np.random.uniform(size=dataset.shape[0])
+    bin_id = -999*np.ones(dataset.shape[0])
+    
+    for data_count in np.arange(dataset.shape[0]):
+        for bin_count in np.arange(len(bins)-1):
+            if bins[bin_count]<=dataset[data_count, 0] and dataset[data_count, 0]<bins[bin_count+1]:
+                temp_bin_id = bin_count
+        bin_id[data_count] = temp_bin_id
+    
+    bin_id = bin_id.astype(int)   
+    classes = rand_numbers < thresholds[bin_id]
+    not_classes = np.invert(classes)
+    class1 = dataset[classes, :]
+    class0 = dataset[not_classes, :]
+    classes = classes.astype(int)
+    classes = classes + 1
+    
+    #plt.figure()    
+    #plt.scatter(class1[:, 0], class1[:, 1], color='red')
+    #plt.scatter(class0[:, 0], class0[:, 1], color='blue')
+    #plt.title('Uniformly distributed random data')
+    #plt.xlabel('Feature 1')
+    #plt.ylabel('Feature 2')
+    #plt.show()
+    
+    err = 0.05*np.ones((dataset.shape[0], dataset.shape[1]))
+    
+    return dataset, err, classes
     
 def misclassifications(probs, X_test, Y_test):
     """
