@@ -1,0 +1,65 @@
+A Guide to Max's Files
+
+For a technical description of what each file or function does, see the 
+in code comments. This is a brief overview.
+
+max_learn_sncosmo.py -  The main script, it gets the feature sets, splits
+			them into training and testing, passes them to 
+			the classifiers, saves various probability figures
+			and prints performance criteria.
+
+max_tools.py -  	Contains a variety of functions, including: run_ml which runs
+			the classification algorithms, frequency_probabilities which 
+			calculates probabilities by perturbing the data, make_a_fake_
+			dataset which produces a dataset consisting of 3 Gaussian
+			clouds of data points, and make_a_uniform_dataset, which makes
+			a field of random, uniformly distributed points, then classifies
+			them according to a linearly increasing probability distribution.
+
+max_ml_algorithms.py -  The classifiers and performance criteria. This includes:
+			ROC AUC, F1, Figure of Merit, linear SVM, cubic SVM,
+			SVM with radial basis function kernel, a random forest of 
+			decision trees, an AdaBoost ensemble, K-nearest neighbours,
+			Naive Bayes, Artificial Neural Network (pybrain), Multiple
+			Classifier System, and the beginnings of a SkyNet wrapper.
+
+max_grid_search.py - 	A parameter grid search for KNN, RF, AdaBoost and radial basis
+			function SVM.
+
+And a guide to the plots that I've made:
+
+Xprobs.png - 	A plot of frequency probability vs. classifier probability for real data
+		for classifier X.
+
+X_0.5.png - 	A plot of frequency probability vs. classifier probability for fake data
+		consisting of 2 Gaussian clouds of data points, with a classification 
+		threshold of P = 0.5, for classifier X.
+
+X_0.7.png - 	A plot of frequency probability vs. classifier probability for fake data
+		consisting of 2 Gaussian clouds of data points, with a classification 
+		threshold of P = 0.7, for classifier X.
+
+X_3pop.png - 	A plot of frequency probability vs. classifier probability for fake data
+		consisting of 3 Gaussian clouds of data points, with a classification
+		threshold of P = 0.7, for classifier X.
+
+X_uniform.png - A plot of frequency probability vs. classifier probability for fake data
+		consisting of a random, uniform field of data points, where class is 
+		determined by a linearly increasing probability distribution, for classifier 
+		X. A classification threshold of P = 0.7 is used.
+
+X_RvsC.png - 	A plot of the real probability vs. classifier probability for fake data
+		consisting of a random, uniform field of data points, for classifier X. The
+		'real' probability is the linear probability distribution used to assign 
+		classes to the data in max_tools.make_a_uniform_dataset().
+
+X_RvsF.png - 	A plot of the real probability vs. frequency probability for fake data
+		consistsing of a random, uniform field of data points, for classifier X. A
+		classification threshold of P = 0.7 is   
+
+ROC.png - 	A plot of the ROC curves for KNN, RF, SVM with radial basis functions, NB,
+		AdaBoost, ANN and MCS.
+
+ROC_original.png - A plot of the original ROC curve from when I started on the project, with
+		linear SVM, NB, KNN and RF.
+		    
